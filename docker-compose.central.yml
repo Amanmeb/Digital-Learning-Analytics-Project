@@ -1,0 +1,68 @@
+﻿services:
+
+  postgres:
+    image: postgres:16.3-alpine
+    container_name: cdlaid_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: cdlaid_user
+      POSTGRES_PASSWORD: CdlaidDB2025!Strong
+      POSTGRES_DB: cdlaid_analytics
+    volumes:
+      - cdlaid_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cdlaid_user -d cdlaid_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql:
+    image: mysql:8.0
+    container_name: cdlaid_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: MoodleRoot2025!Strong
+      MYSQL_DATABASE: moodle
+      MYSQL_USER: moodle_user
+      MYSQL_PASSWORD: MoodleDB2025!Strong
+    volumes:
+      - cdlaid_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  moodle:
+    image: bitnami/moodle:latest
+    container_name: cdlaid_moodle
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    environment:
+      MOODLE_DATABASE_TYPE: mysqli
+      MOODLE_DATABASE_HOST: mysql
+      MOODLE_DATABASE_PORT_NUMBER: 3306
+      MOODLE_DATABASE_NAME: moodle
+      MOODLE_DATABASE_USER: moodle_user
+      MOODLE_DATABASE_PASSWORD: MoodleDB2025!Strong
+      MOODLE_USERNAME: admin
+      MOODLE_PASSWORD: CdlaidMoodle2025!
+      MOODLE_EMAIL: henoktesfaye700@gmail.com
+      MOODLE_SITE_NAME: CDLAID Learning Platform
+    volumes:
+      - cdlaid_moodle_data:/bitnami/moodle
+      - cdlaid_moodledata:/bitnami/moodledata
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  cdlaid_pg_data:
+  cdlaid_mysql_data:
+  cdlaid_moodle_data:
+  cdlaid_moodledata:
