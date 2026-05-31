@@ -38,25 +38,16 @@
       retries: 5
 
   moodle:
-    image: bitnami/moodle:latest
+    build:
+      context: ./moodle
+      dockerfile: Dockerfile
     container_name: cdlaid_moodle
     restart: unless-stopped
     ports:
-      - "3000:8080"
-    environment:
-      MOODLE_DATABASE_TYPE: mysqli
-      MOODLE_DATABASE_HOST: mysql
-      MOODLE_DATABASE_PORT_NUMBER: 3306
-      MOODLE_DATABASE_NAME: moodle
-      MOODLE_DATABASE_USER: moodle_user
-      MOODLE_DATABASE_PASSWORD: MoodleDB2025!Strong
-      MOODLE_USERNAME: admin
-      MOODLE_PASSWORD: CdlaidMoodle2025!
-      MOODLE_EMAIL: henoktesfaye700@gmail.com
-      MOODLE_SITE_NAME: CDLAID Learning Platform
+      - "3000:80"
     volumes:
-      - cdlaid_moodle_data:/bitnami/moodle
-      - cdlaid_moodledata:/bitnami/moodledata
+      - cdlaid_moodle_data:/var/www/moodledata
+      - ./moodle/config.php:/var/www/html/config.php
     depends_on:
       mysql:
         condition: service_healthy
@@ -65,4 +56,3 @@ volumes:
   cdlaid_pg_data:
   cdlaid_mysql_data:
   cdlaid_moodle_data:
-  cdlaid_moodledata:
