@@ -1,32 +1,5 @@
-﻿# Environment variables
-.env
-
-# Python
-.venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
+.ruff_cache/
 .pytest_cache/
-
-# dbt
-dbt/target/
-dbt/dbt_packages/
-dbt/logs/
-
-# Logs
-*.log
-
-# SQLite
-*.sqlite
-*.db
-
-# Backups
-backups/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# VS Code
-.vscode/settings.json
+.env
