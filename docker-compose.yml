@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16.3-alpine
+    container_name: cdlaid_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-cdlaid_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME:-cdlaid_analytics}
+    volumes:
+      - cdlaid_pg_data:/var/lib/postgresql/data
+      - ./sql/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cdlaid_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cdlaid_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: >-
+        postgresql+asyncpg://${DB_USER:-cdlaid_user}:${DB_PASSWORD:-changeme}@postgres:5432/${DB_NAME:-cdlaid_analytics}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  cdlaid_pg_data:
