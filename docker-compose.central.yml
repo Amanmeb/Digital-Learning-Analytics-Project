@@ -1,5 +1,4 @@
 ﻿services:
-
   postgres:
     image: postgres:16.3-alpine
     container_name: cdlaid_postgres
@@ -51,6 +50,30 @@
     depends_on:
       mysql:
         condition: service_healthy
+
+  lrs:
+    image: yetanalytics/lrsql:latest
+    container_name: cdlaid_lrs
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      LRSQL_DB_TYPE: postgres
+      LRSQL_DB_HOST: postgres
+      LRSQL_DB_PORT: 5432
+      LRSQL_DB_NAME: cdlaid_analytics
+      LRSQL_DB_USER: cdlaid_user
+      LRSQL_DB_PASSWORD: CdlaidDB2025!Strong
+      LRSQL_DB_SCHEMA: lrs
+      LRSQL_API_KEY_DEFAULT: ${LRS_KEY}
+      LRSQL_API_SECRET_DEFAULT: ${LRS_SECRET}
+      LRSQL_ADMIN_USER_DEFAULT: ${LRS_ADMIN_USER}
+      LRSQL_ADMIN_PASS_DEFAULT: ${LRS_ADMIN_PASSWORD}
+      LRSQL_ALLOW_ALL_ORIGINS: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: bin/run_postgres.sh
 
 volumes:
   cdlaid_pg_data:
