@@ -1,15 +1,8 @@
-# xapi/validator.py
-# CDLAID xAPI statement validator
-# Validates all required fields before any statement is queued or sent
-# Works on Windows, Linux, Mac -- no OS-specific dependencies
-# Used by emitter.py and by the FastAPI ingestion API in Step 7
-# Mobile is Tier 3 -- separate implementation will be built later
 
 import hashlib
 
 
-# All approved xAPI verbs for CDLAID
-# Add new verbs via admin panel in Step 7 -- do not hardcode here
+
 APPROVED_VERBS = [
     # ADL standard verbs
     "http://adlnet.gov/expapi/verbs/launched",
@@ -38,8 +31,7 @@ APPROVED_VERBS = [
     "https://camara.org/xapi/verbs/hint-requested",
 ]
 
-# All approved AI query types for CDLAID
-# Extensible via admin panel in Step 7
+
 APPROVED_QUERY_TYPES = [
     "Clarification",
     "Problem-solving",
@@ -48,8 +40,7 @@ APPROVED_QUERY_TYPES = [
     "Practice",
 ]
 
-# All approved completion status values
-# Must match exactly -- used in dbt completion rate calculations
+
 APPROVED_COMPLETION_STATUSES = [
     "Completed",
     "Incomplete",
@@ -58,16 +49,14 @@ APPROVED_COMPLETION_STATUSES = [
     "Unknown",
 ]
 
-# All approved tracking depth values
-# Determines how much data a platform can provide
+
 APPROVED_TRACKING_DEPTHS = [
     "full",
     "partial",
     "click_only",
 ]
 
-# Required Camara custom context fields
-# Every xAPI statement must include all six fields
+
 REQUIRED_CAMARA_CONTEXT_FIELDS = [
     "school_id",
     "device_id",
@@ -161,10 +150,7 @@ def validate_query_type(query_type):
 
 
 def calculate_fingerprint(statement):
-    # SHA-256 fingerprint for deduplication
-    # Formula: SHA-256 of student_id|event_type|content_id|timestamp|school_id
-    # Same formula used in FastAPI ingestion API in Step 7
-    # Returns empty string on any error -- caller must handle
+
     try:
         context = statement.get("context", {})
         extensions = context.get("extensions", {})

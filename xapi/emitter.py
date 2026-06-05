@@ -1,30 +1,4 @@
-# xapi/emitter.py
-# CDLAID universal xAPI emitter library
-# Used by all non-native platforms to emit xAPI events
-# Writes directly to the SQLite queue on the school server
-#
-# Platform support:
-#   Windows  -- fully supported (development machine)
-#   Linux    -- fully supported (school server and central server)
-#   Mac      -- fully supported (any developer machine)
-#   Mobile   -- not supported here -- Tier 3 will have separate implementation
-#
-# All platforms supported including click-only platforms
-# tracking_depth parameter controls what data is recorded
-#   full       -- PLT_OA, PLT_CS, PLT_GAME, PLT_LAB, PLT_H5P
-#   partial    -- PLT_RADIO, PLT_PHET, PLT_LTI, PLT_SCORM
-#   click_only -- PLT_MANUAL, PLT_RACHEL, PLT_W3
-#
-# Session inactivity cutoff is handled by the calling platform
-# The emitter is stateless -- it only records what it is told
-#
-# Environment variables (set in .env):
-#   QUEUE_DB_PATH      -- path to SQLite queue file
-#   XAPI_HOMEPAGE_URL  -- base URL for actor homePage
-#                         no hardcoded production URL
-#                         each country sets their own URL
-#   XAPI_SERVER_ID     -- server identifier format SRV-ET-AA-001-001
-#   XAPI_SCHOOL_ID     -- school identifier format ET-AA-001
+
 
 import json
 import os
@@ -59,7 +33,7 @@ def _get_connection():
     # Create parent directory if it does not exist
     # parents=True creates all intermediate directories
     # exist_ok=True does not raise error if directory already exists
-    # Works on Windows, Linux, and Mac
+
     QUEUE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(QUEUE_DB_PATH))
 
@@ -90,7 +64,7 @@ def _get_connection():
 
 def _now():
     # Returns current UTC time in ISO 8601 format with Z suffix
-    # Example: 2025-03-15T10:30:00.000000Z
+
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
@@ -116,8 +90,7 @@ def _build_camara_context(
     extra=None,
 ):
     # Builds Camara custom context extension
-    # All six required fields must be present
-    # extra dict is merged in for event-specific fields
+
     ext = {
         "school_id":      school_id,
         "device_id":      device_id,
@@ -191,7 +164,6 @@ def emit_session_start(
 ):
     # Emits a session-started event
     # Called when a student begins a learning session on any platform
-    # session_id must be unique -- use uuid4 from the calling platform
     statement = {
         "id":        str(uuid.uuid4()),
         "timestamp": _now(),
@@ -227,9 +199,7 @@ def emit_session_end(
     tracking_depth="full",
 ):
     # Emits a session-ended event
-    # Called by the platform when session ends
-    # Inactivity cutoff is handled by the calling platform not the emitter
-    # duration_seconds is the total session length in seconds
+
     statement = {
         "id":        str(uuid.uuid4()),
         "timestamp": _now(),
@@ -270,7 +240,6 @@ def emit_content_accessed(
     # Emits a content accessed event
     # Called when a student opens any content item on any platform
     # This is the only emit function available for click-only platforms
-    # click-only platforms: PLT_MANUAL, PLT_RACHEL, PLT_W3
     statement = {
         "id":        str(uuid.uuid4()),
         "timestamp": _now(),
