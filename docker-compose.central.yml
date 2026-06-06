@@ -75,6 +75,30 @@
         condition: service_healthy
     command: bin/run_postgres.sh
 
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: cdlaid_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://cdlaid_user:CdlaidDB2025!Strong@postgres:5432/cdlaid_analytics
+      API_SECRET_KEY: ${API_SECRET_KEY}
+      LRS_ENDPOINT: http://cdlaid_lrs:8080/xapi/statements
+      LRS_KEY: ${LRS_KEY}
+      LRS_SECRET: ${LRS_SECRET}
+      ENVIRONMENT: ${ENVIRONMENT}
+      DEMO_MODE: ${DEMO_MODE}
+      SERVER_ID: ${SERVER_ID}
+      SCHOOL_ID: ${SCHOOL_ID}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./templates:/app/templates
+
 volumes:
   cdlaid_pg_data:
   cdlaid_mysql_data:

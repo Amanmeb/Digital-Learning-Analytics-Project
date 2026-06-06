@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Schools -- CDLAID Admin{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Registered Schools</h2>
+    <table>
+        <tr>
+            <th>School ID</th>
+            <th>School Name</th>
+            <th>Region</th>
+            <th>Type</th>
+            <th>Last Sync</th>
+            <th>Status</th>
+        </tr>
+        {% for school in schools %}
+        <tr>
+            <td>{{ school.school_id }}</td>
+            <td>{{ school.school_name }}</td>
+            <td>{{ school.region_id }}</td>
+            <td>{{ school.school_type }}</td>
+            <td>{{ school.last_sync_date or 'Never' }}</td>
+            <td>{{ 'Active' if school.is_active else 'Inactive' }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

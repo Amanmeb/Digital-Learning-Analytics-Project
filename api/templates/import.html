@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Import Data -- CDLAID Admin{% endblock %}
+{% block content %}
+<div class="card">
+    <h2>Import Data</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:16px;">
+        Upload CSV or Excel files to import data.
+        Download templates below before filling in data.
+        Duplicate records are automatically rejected.
+    </p>
+
+    <h3 style="margin-bottom:12px;font-size:15px;color:#375C7A;">Download Templates</h3>
+    <div style="margin-bottom:20px;">
+        <a href="/api/v1/admin/templates/sessions" class="btn btn-secondary" style="margin-right:8px;">Sessions Template</a>
+        <a href="/api/v1/admin/templates/assessments" class="btn btn-secondary" style="margin-right:8px;">Assessments Template</a>
+        <a href="/api/v1/admin/templates/content_usage" class="btn btn-secondary" style="margin-right:8px;">Content Usage Template</a>
+        <a href="/api/v1/admin/templates/ai_usage" class="btn btn-secondary">AI Usage Template</a>
+    </div>
+
+    <h3 style="margin-bottom:12px;font-size:15px;color:#375C7A;">Upload Sessions</h3>
+    <form action="/api/v1/admin/import/sessions" method="post" enctype="multipart/form-data" style="margin-bottom:20px;">
+        <div class="form-group">
+            <input type="file" name="file" accept=".csv,.xlsx,.xls">
+        </div>
+        <button type="submit" class="btn btn-primary">Upload Sessions</button>
+    </form>
+
+    <h3 style="margin-bottom:12px;font-size:15px;color:#375C7A;">Upload Assessments</h3>
+    <form action="/api/v1/admin/import/assessments" method="post" enctype="multipart/form-data" style="margin-bottom:20px;">
+        <div class="form-group">
+            <input type="file" name="file" accept=".csv,.xlsx,.xls">
+        </div>
+        <button type="submit" class="btn btn-primary">Upload Assessments</button>
+    </form>
+
+    {% if quarantine %}
+    <div class="card" style="margin-top:20px;">
+        <h3 style="color:#943266;">Quarantine Report</h3>
+        <table>
+            <tr><th>Row</th><th>Errors</th></tr>
+            {% for item in quarantine %}
+            <tr>
+                <td>{{ item.row }}</td>
+                <td>{{ item.errors | join(', ') }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

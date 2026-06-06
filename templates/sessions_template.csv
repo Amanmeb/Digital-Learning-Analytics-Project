@@ -1,0 +1,2 @@
+student_id,school_id,platform_id,device_id,session_start,session_end,is_offline,session_duration_minutes
+ET-AA-SCH001-2025-000001,ET-AA-001,PLT_OA,DEV-ET-AA-001-000001,2025-03-15T08:00:00Z,2025-03-15T09:15:00Z,TRUE,75
