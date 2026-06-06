@@ -1,0 +1,2 @@
+student_id,school_id,ai_service_id,subject_id,query_count,time_spent_minutes,query_type,interaction_date
+ET-AA-SCH001-2025-000001,ET-AA-001,AI-001,SUBJ-MATH,3,12,Clarification,2025-03-15T10:00:00Z
