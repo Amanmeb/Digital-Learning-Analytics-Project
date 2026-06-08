@@ -16,13 +16,13 @@
 - ✅ Moodle + MySQL in Docker (`docker-compose.central.yml`)
 
 ### Backend / API (Bityana)
-- 🔄 FastAPI ingestion service skeleton + `POST /api/v1/ingest/sessions` endpoint
-- 🔄 Quarantine table (`raw.quarantine`) for malformed records
-- 🔄 CI pipeline: ruff lint + pytest on every PR
+- ✅ FastAPI ingestion service skeleton + `POST /api/v1/ingest/sessions` endpoint
+- ✅ Quarantine table (`raw.quarantine`) for malformed records
+- ✅ CI pipeline: ruff lint + pytest on every PR
 
 ## Week 3–4: Core Ingestion
 
-- ⬜ Ingestion endpoints for remaining fact tables: `fact_teacher_session`, `fact_content_usage`, `fact_ai_usage`, `fact_assessment_attempt`
+- 🔄 Ingestion endpoints for remaining fact tables: `fact_teacher_session`, `fact_content_usage`, `fact_ai_usage`, `fact_assessment_attempt`
 - ⬜ Bulk batch ingestion endpoint (`POST /api/v1/ingest/batch`)
 - ⬜ `fact_school_daily_summary`, `fact_device_usage`, `fact_sync_health` endpoints
 - ⬜ Date dimension auto-populate for new date_ids
