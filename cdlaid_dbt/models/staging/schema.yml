@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: stg_sessions
+    description: Staging model for session events from raw xAPI statements
+    columns:
+      - name: statement_id
+        tests:
+          - not_null
+          - unique
+      - name: student_id
+        tests:
+          - not_null
+      - name: school_id
+        tests:
+          - not_null
+
+  - name: stg_assessments
+    description: Staging model for assessment attempt events
+    columns:
+      - name: statement_id
+        tests:
+          - not_null
+          - unique
+      - name: score_raw
+        tests:
+          - not_null
+
+  - name: core_student_engagement
+    description: Core student engagement metrics per school per day
+    columns:
+      - name: student_id
+        tests:
+          - not_null
+      - name: school_id
+        tests:
+          - not_null
+      - name: session_date
+        tests:
+          - not_null
+
+  - name: mart_school_performance
+    description: School performance metrics for dashboard
+    columns:
+      - name: school_id
+        tests:
+          - not_null
+          - unique
+      - name: performance_index
+        tests:
+          - not_null
+
+  - name: mart_executive_overview
+    description: National executive overview metrics
+    columns:
+      - name: active_schools
+        tests:
+          - not_null

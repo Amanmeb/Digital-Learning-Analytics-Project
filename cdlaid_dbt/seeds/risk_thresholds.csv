@@ -1,0 +1,13 @@
+threshold_key,threshold_value,description
+pass_threshold,50,Minimum score to pass an assessment
+mastery_threshold,80,Minimum score to achieve mastery
+completion_flag,40,Completion rate below this is flagged
+school_coverage_flag,50,Registration coverage below this is flagged
+school_performance_flag,0.4,Performance index below this is flagged
+gender_parity_min,0.9,Minimum acceptable gender parity index
+gender_parity_max,1.1,Maximum acceptable gender parity index
+ai_adoption_target,30,Target AI adoption rate percentage
+sync_health_target,95,Target sync health percentage
+content_stale_days,365,Days before content is considered stale
+reengagement_days,14,Days inactive before counted as lapsed
+first_week_days,7,Days for first week activation window
