@@ -76,5 +76,5 @@ class FactAssessmentAttemptIn(BaseModel):
     student_id: str = Field(..., min_length=1, max_length=50)
     content_id: str = Field(..., min_length=1, max_length=50)
     date_id: DateId
-    score: int = Field(..., ge=0, le=100)
+    score: float = Field(..., ge=0, le=100)
     completion_status: str = Field(..., min_length=1, max_length=20)
