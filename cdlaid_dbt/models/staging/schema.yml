@@ -46,8 +46,11 @@ models:
         data_tests:
           - not_null
   - name: mart_executive_overview
-    description: National executive overview metrics
+    description: Daily school level overview metrics for Executive dashboard
     columns:
-      - name: active_schools
+      - name: school_id
+        data_tests:
+          - not_null
+      - name: summary_date
         data_tests:
           - not_null
