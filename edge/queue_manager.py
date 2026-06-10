@@ -181,3 +181,8 @@ def register_device(device_id, school_id, server_id):
         conn.commit()
     finally:
         conn.close()
+
+
+def get_db_path():
+    # Returns the path to the SQLite queue database
+    return str(QUEUE_DB_PATH)

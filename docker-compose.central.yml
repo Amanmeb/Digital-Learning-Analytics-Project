@@ -1,4 +1,4 @@
-﻿services:
+services:
   postgres:
     image: postgres:16.3-alpine
     container_name: cdlaid_postgres
@@ -93,13 +93,36 @@
       DEMO_MODE: ${DEMO_MODE}
       SERVER_ID: ${SERVER_ID}
       SCHOOL_ID: ${SCHOOL_ID}
+      DBT_PROJECT_DIR: /app/cdlaid_dbt
+      DBT_PROFILES_DIR: /app
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./templates:/app/templates
+      - ./cdlaid_dbt:/app/cdlaid_dbt
+
+  superset:
+    image: apache/superset:3.1.3
+    container_name: cdlaid_superset
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      DATABASE_URL: postgresql+psycopg2://cdlaid_user:CdlaidDB2025!Strong@postgres:5432/cdlaid_analytics
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - cdlaid_superset_home:/app/superset_home
+      - ./superset/superset_config.py:/app/pythonpath/superset_config.py
+    command: ["/bin/bash", "-c", "superset db upgrade && superset fab create-admin --username admin --firstname Camara --lastname Admin --email $$SUPERSET_ADMIN_EMAIL --password $$SUPERSET_ADMIN_PASSWORD || true && superset init && superset run -p 8088 --host 0.0.0.0 --with-threads"]
 
 volumes:
   cdlaid_pg_data:
   cdlaid_mysql_data:
   cdlaid_moodle_data:
+  cdlaid_superset_home:

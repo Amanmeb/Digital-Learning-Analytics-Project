@@ -16,6 +16,7 @@ from api.database import get_db
 from api.errors import api_error
 from api.fingerprint import calculate_fingerprint
 from api.logger import logger, log_to_db
+from api.dbt_trigger import trigger_dbt_if_ready
 
 router = APIRouter(tags=["Ingest"])
 
@@ -234,6 +235,10 @@ async def ingest_statements(request: Request, db=Depends(get_db)):
         details="received=" + str(received) + " inserted=" + str(inserted) +
                 " duplicate=" + str(duplicate) + " rejected=" + str(rejected),
     )
+
+    # Trigger dbt run if statements were inserted
+    if inserted > 0:
+        trigger_dbt_if_ready()
 
     return {
         "request_id":            request_id,
