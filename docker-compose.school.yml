@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: cdlaid_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: MoodleRoot2025!Strong
+      MYSQL_DATABASE: moodle
+      MYSQL_USER: moodle_user
+      MYSQL_PASSWORD: MoodleDB2025!Strong
+    volumes:
+      - cdlaid_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  moodle:
+    build:
+      context: ./moodle
+      dockerfile: Dockerfile
+    container_name: cdlaid_moodle
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - cdlaid_moodle_data:/var/www/moodledata
+      - ./moodle/config.php:/var/www/html/config.php
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  cdlaid_mysql_data:
+  cdlaid_moodle_data:

@@ -1,0 +1,50 @@
+name: cdlaid_dbt
+version: "1.0.0"
+config-version: 2
+
+profile: cdlaid_dbt
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+analysis-paths: ["analyses"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  pass_threshold: 50
+  mastery_threshold: 80
+  ai_adoption_target: 30
+  gender_parity_min: 0.9
+  gender_parity_max: 1.1
+  completion_flag: 40
+  school_coverage_flag: 50
+  school_performance_flag: 0.4
+  inactivity_cutoff_min: 30
+  reengagement_days: 14
+  sync_health_target: 95
+  content_stale_days: 365
+  first_week_days: 7
+  date_range_default: 30
+  top_n_default: 10
+
+seeds:
+  cdlaid_dbt:
+    +schema: mart
+
+models:
+  cdlaid_dbt:
+    staging:
+      +materialized: view
+      +schema: ops
+    core:
+      +materialized: table
+      +schema: core
+    mart:
+      +materialized: table
+      +schema: mart
