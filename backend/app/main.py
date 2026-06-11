@@ -2,11 +2,22 @@ from fastapi import FastAPI
 
 from app.routers import ingest
 
-app = FastAPI(title="CDLAID Ingestion API", version="0.1.0", docs_url="/api/docs")
+app = FastAPI(title="CDLAID Ingestion API", version="0.1.0", docs_url="/api/docs,redoc_url=None")
+
 
 app.include_router(ingest.router, prefix="/api/v1")
+
+@app.get("/")
+async def root() -> dict:
+    return {
+        "service": "cdlaid-ingestion-api",
+        "status": "running",
+        "version": "0.1.0"
+    }
 
 
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+ 
