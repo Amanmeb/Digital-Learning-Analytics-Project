@@ -1,0 +1,12 @@
+cdlaid_dbt:
+  target: school
+  outputs:
+    school:
+      type: postgres
+      host: localhost
+      port: 5433
+      user: cdlaid_user
+      password: CdlaidDB2025!Strong
+      database: cdlaid_school
+      schema: mart
+      threads: 2
