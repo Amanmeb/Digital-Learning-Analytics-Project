@@ -33,6 +33,44 @@ services:
       mysql:
         condition: service_healthy
 
+  postgres:
+    image: postgres:16.3-alpine
+    container_name: cdlaid_school_postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: cdlaid_user
+      POSTGRES_PASSWORD: CdlaidDB2025!Strong
+      POSTGRES_DB: cdlaid_school
+    volumes:
+      - cdlaid_school_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cdlaid_user -d cdlaid_school"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  superset:
+    image: apache/superset:3.1.3
+    container_name: cdlaid_school_superset
+    restart: unless-stopped
+    ports:
+      - "8089:8088"
+    environment:
+      SUPERSET_SECRET_KEY: cdlaid_school_superset_secret_key_2025_strong
+      SUPERSET_ADMIN_PASSWORD: CdlaidAdmin2025!
+      SUPERSET_ADMIN_EMAIL: admin@camara.school
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - cdlaid_school_superset_home:/app/superset_home
+      - ./superset/superset_school_config.py:/app/pythonpath/superset_config.py
+    command: ["/bin/bash", "-c", "superset db upgrade && superset fab create-admin --username admin --firstname Camara --lastname School --email $$SUPERSET_ADMIN_EMAIL --password $$SUPERSET_ADMIN_PASSWORD || true && superset init && superset run -p 8088 --host 0.0.0.0 --with-threads"]
+
 volumes:
   cdlaid_mysql_data:
   cdlaid_moodle_data:
+  cdlaid_school_pg_data:
+  cdlaid_school_superset_home:

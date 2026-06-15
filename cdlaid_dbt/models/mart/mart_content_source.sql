@@ -1,5 +1,6 @@
 -- Mart model for Content Source Analytics dashboard
 -- Pre-aggregates content usage by provider
+-- Includes language breakdown and risk flag from settings
 
 with content_with_provider as (
     select
@@ -10,27 +11,44 @@ with content_with_provider as (
         cp.completed_count,
         cp.completion_rate_pct,
         cp.avg_time_spent_minutes,
-        dc.provider_id
+        dc.provider_id,
+        dc.language_id
     from {{ ref("core_content_performance") }} cp
     left join mart.dim_content dc on cp.content_id = dc.content_id
+),
+
+provider_summary as (
+    select
+        c.provider_id,
+        c.school_id,
+        c.language_id,
+        sum(c.total_accesses)                       as total_accesses,
+        sum(c.unique_students)                      as unique_students,
+        sum(c.completed_count)                      as total_completed,
+        round(avg(c.completion_rate_pct)::numeric, 2) as avg_completion_rate_pct,
+        round(avg(c.avg_time_spent_minutes)::numeric, 2) as avg_time_spent_minutes
+    from content_with_provider c
+    group by c.provider_id, c.school_id, c.language_id
 )
 
 select
-    c.provider_id,
+    ps.provider_id,
     p.provider_name,
     p.provider_type,
-    c.school_id,
-    sum(c.total_accesses)                       as total_accesses,
-    count(distinct c.unique_students)           as unique_students,
-    round(avg(c.completion_rate_pct)::numeric, 2) as avg_completion_rate_pct,
-    round(avg(c.avg_time_spent_minutes)::numeric, 2) as avg_time_spent_minutes,
+    ps.school_id,
+    l.language_name,
+    ps.total_accesses,
+    ps.unique_students,
+    ps.total_completed,
+    ps.avg_completion_rate_pct,
+    ps.avg_time_spent_minutes,
     case
-        when avg(c.completion_rate_pct) < {{ var("completion_flag") }}
-        or sum(c.total_accesses) < 100
+        when ps.avg_completion_rate_pct < {{ get_setting("provider_risk_flag") | float }}
+        or ps.total_accesses < 100
         then 'RISK'
         else 'OK'
     end                                         as risk_flag,
     current_timestamp                           as refreshed_at
-from content_with_provider c
-left join mart.dim_content_provider p on c.provider_id = p.provider_id
-group by c.provider_id, p.provider_name, p.provider_type, c.school_id
+from provider_summary ps
+left join mart.dim_content_provider p on ps.provider_id = p.provider_id
+left join mart.dim_language l on ps.language_id = l.language_id
