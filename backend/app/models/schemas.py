@@ -1,6 +1,10 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from pydantic import AfterValidator, BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr
+
+
+
 
 
 def _check_date_id(v: int) -> int:
@@ -15,10 +19,26 @@ def _check_date_id(v: int) -> int:
 
 DateId = Annotated[int, AfterValidator(_check_date_id)]
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+# class RegisterRequest(BaseModel):
+#     email: EmailStr
+#     password: str
+#     role: str
+#     analytics_id: str
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    role: str
+    student_id: Optional[str] = None
+    teacher_id: Optional[str] = None
+
 
 class FactSessionIn(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=100)
-    student_id: str = Field(..., min_length=1, max_length=50)
+    # student_id: str = Field(..., min_length=1, max_length=50)
     school_id: str = Field(..., min_length=1, max_length=20)
     device_id: str = Field(..., min_length=1, max_length=50)
     platform_id: str = Field(..., min_length=1, max_length=20)

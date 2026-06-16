@@ -13,7 +13,7 @@ services:
       - cdlaid_pg_data:/var/lib/postgresql/data
       - ./sql/migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cdlaid_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cdlaid_user} -d ${DB_NAME:-cdlaid_analytics}"]
       interval: 10s
       timeout: 5s
       retries: 5

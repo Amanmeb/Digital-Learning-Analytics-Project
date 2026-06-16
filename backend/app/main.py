@@ -1,11 +1,19 @@
 from fastapi import FastAPI
 
+from app.auth.router import router as auth_router
 from app.routers import ingest
 
-app = FastAPI(title="CDLAID Ingestion API", version="0.1.0", docs_url="/api/docs,redoc_url=None")
-
+app = FastAPI(
+    title="CDLAID Ingestion API",
+    version="0.1.0",
+    docs_url="/api/docs",
+    redoc_url=None,
+)
 
 app.include_router(ingest.router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
+
+
 
 @app.get("/")
 async def root() -> dict:
