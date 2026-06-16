@@ -69,8 +69,28 @@ services:
       - ./superset/superset_school_config.py:/app/pythonpath/superset_config.py
     command: ["/bin/bash", "-c", "superset db upgrade && superset fab create-admin --username admin --firstname Camara --lastname School --email $$SUPERSET_ADMIN_EMAIL --password $$SUPERSET_ADMIN_PASSWORD || true && superset init && superset run -p 8088 --host 0.0.0.0 --with-threads"]
 
+  device_receiver:
+    build:
+      context: .
+      dockerfile: edge/Dockerfile.device_receiver
+    container_name: cdlaid_school_device_receiver
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      SCHOOL_ID: ${SCHOOL_ID:-ET-AA-001}
+      SERVER_ID: ${SERVER_ID:-SRV-ET-AA-001-001}
+      SCHOOL_API_KEY: ${SCHOOL_API_KEY:-}
+      QUEUE_DB_PATH: /app/queue_data/queue.db
+      DBT_PROJECT_DIR: /app/cdlaid_dbt
+      DBT_PROFILES_DIR: /app/cdlaid_dbt
+    volumes:
+      - cdlaid_school_queue:/app/queue_data
+      - ./cdlaid_dbt:/app/cdlaid_dbt
+
 volumes:
   cdlaid_mysql_data:
   cdlaid_moodle_data:
   cdlaid_school_pg_data:
   cdlaid_school_superset_home:
+  cdlaid_school_queue:
