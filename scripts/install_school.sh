@@ -102,7 +102,8 @@ BACKUP_DIR="/home/ubuntu/cdlaid-backups"
 mkdir -p "${BACKUP_DIR}"
 
 # Try central server first
-if curl -f -o "${BACKUP_DIR}/master_cdlaid_moodle.mbz"     "${CENTRAL_URL}/content/master_cdlaid_moodle.mbz" 2>/dev/null; then
+if curl -f -o "${BACKUP_DIR}/master_cdlaid_moodle.mbz" \
+    "${CENTRAL_URL}/content/master_cdlaid_moodle.mbz" 2>/dev/null; then
     echo "Master backup downloaded from central server"
 else
     echo "Central server not available -- checking USB"
@@ -120,13 +121,25 @@ fi
 # ------------------------------------------------------------
 echo "Phase 5 -- Configuring xAPI plugin"
 
-docker exec -u www-data cdlaid_moodle php     /var/www/html/admin/cli/cfg.php     --component=logstore_xapi     --name=endpoint     --set="${CENTRAL_URL}/xapi/statements"
+docker exec -u www-data cdlaid_moodle php \
+    /var/www/html/admin/cli/cfg.php \
+    --component=logstore_xapi \
+    --name=endpoint \
+    --set="${CENTRAL_URL}/xapi/statements"
 
-docker exec -u www-data cdlaid_moodle php     /var/www/html/admin/cli/cfg.php     --component=logstore_xapi     --name=username     --set="${API_KEY}"
+docker exec -u www-data cdlaid_moodle php \
+    /var/www/html/admin/cli/cfg.php \
+    --component=logstore_xapi \
+    --name=username \
+    --set="${API_KEY}"
 
 # Register school with central server
 echo "Registering school with central server"
-curl -s -X POST "${CENTRAL_URL}/api/v1/admin/schools"     -H "Content-Type: application/json"     -H "X-API-Key: ${API_KEY}"     -d "{"school_id":"${SCHOOL_ID}","school_name":"${SCHOOL_NAME}","region_id":"ET-AA"}"     || echo "School registration will retry on first sync"
+curl -s -X POST "${CENTRAL_URL}/api/v1/admin/schools" \
+    -H "Content-Type: application/json" \
+    -H "X-API-Key: ${API_KEY}" \
+    -d "{\"school_id\":\"${SCHOOL_ID}\",\"school_name\":\"${SCHOOL_NAME}\",\"region_id\":\"ET-AA\"}" \
+    || echo "School registration will retry on first sync"
 
 # ------------------------------------------------------------
 # Phase 6 -- Install sync agent as systemd service
@@ -198,86 +211,181 @@ echo "  Sync monitor: http://localhost:8090/status"
 echo ""
 echo "Total time: approximately 25 minutes"
 
-
 # ------------------------------------------------------------
-# Phase 8 -- WiFi Hotspot Setup
+# Phase 8 -- Network Connection Setup
 # NOTE: Ubuntu only -- requires nmcli and WiFi adapter
 # Tested on Ubuntu 22.04 LTS with built-in WiFi adapter
+# Supports three connection methods:
+#   Option 1 -- Hotspot only (default for most schools)
+#   Option 2 -- LAN/ethernet only (schools with existing network)
+#   Option 3 -- Both hotspot and LAN simultaneously
+# Connection method and LAN IP stored in .env.school for later changes
 # ------------------------------------------------------------
-echo "Phase 8 -- WiFi Hotspot Setup"
+echo "Phase 8 -- Network Connection Setup"
+echo ""
+echo "Choose connection method:"
+echo "  1 -- Hotspot only (students connect to school WiFi hotspot)"
+echo "  2 -- LAN/ethernet only (school has existing wired network)"
+echo "  3 -- Both hotspot and LAN simultaneously"
+echo ""
+read -p "Enter choice (1, 2, or 3): " CONNECTION_CHOICE
 
-# Check if nmcli is available
-if ! command -v nmcli &> /dev/null; then
-    echo "nmcli not found -- skipping hotspot setup"
-    echo "Install with: sudo apt-get install network-manager"
-else
-    # Generate hotspot name from school ID
-    HOTSPOT_NAME="Camara-${SCHOOL_ID}"
-    HOTSPOT_PASSWORD="camara${SCHOOL_ID//[-]}"
+# Validate choice
+if [ "${CONNECTION_CHOICE}" != "1" ] && \
+   [ "${CONNECTION_CHOICE}" != "2" ] && \
+   [ "${CONNECTION_CHOICE}" != "3" ]; then
+    echo "Invalid choice -- defaulting to Option 1 (hotspot only)"
+    CONNECTION_CHOICE="1"
+fi
 
-    # Check if WiFi adapter is available
-    WIFI_ADAPTER=$(nmcli device status | grep wifi | head -1 | awk '{print $1}')
-    if [ -z "${WIFI_ADAPTER}" ]; then
-        echo "No WiFi adapter found -- skipping hotspot setup"
-    else
-        echo "Setting up hotspot on adapter: ${WIFI_ADAPTER}"
+# Set connection method label
+case "${CONNECTION_CHOICE}" in
+    1) CONNECTION_METHOD="hotspot" ;;
+    2) CONNECTION_METHOD="lan" ;;
+    3) CONNECTION_METHOD="both" ;;
+esac
 
-        # Delete existing hotspot connection if present
-        nmcli connection delete "${HOTSPOT_NAME}" 2>/dev/null || true
+echo "Selected: ${CONNECTION_METHOD}"
 
-        # Create new hotspot connection
-        nmcli connection add \
-            type wifi \
-            ifname "${WIFI_ADAPTER}" \
-            con-name "${HOTSPOT_NAME}" \
-            autoconnect yes \
-            ssid "${HOTSPOT_NAME}" \
-            -- \
-            wifi.mode ap \
-            wifi-sec.key-mgmt wpa-psk \
-            wifi-sec.psk "${HOTSPOT_PASSWORD}" \
-            ipv4.method shared \
-            ipv4.addresses "10.42.0.1/24"
-
-        # Enable hotspot
-        nmcli connection up "${HOTSPOT_NAME}"
-
-        # Enable autostart on boot
-        nmcli connection modify "${HOTSPOT_NAME}" connection.autoconnect yes
-
-        echo ""
-        echo "Hotspot configured:"
-        echo "  Network name: ${HOTSPOT_NAME}"
-        echo "  Password:     ${HOTSPOT_PASSWORD}"
-        echo "  Server IP:    10.42.0.1"
-        echo "  Moodle URL:   http://10.42.0.1:3000"
-        echo "  Export URL:   http://10.42.0.1:8090/export"
-        echo ""
-        echo "Students connect their devices to ${HOTSPOT_NAME}"
-        echo "then open http://10.42.0.1:3000 in their browser"
-
-        # Update Moodle wwwroot to use hotspot IP
-        docker exec -u www-data cdlaid_moodle php \
-            /var/www/html/admin/cli/cfg.php \
-            --name=wwwroot \
-            --set="http://10.42.0.1:3000" \
-            && echo "Moodle wwwroot updated to http://10.42.0.1:3000" \
-            || echo "Could not update Moodle wwwroot -- update manually"
-
-        # Print QR code hint
-        echo ""
-        echo "Tip: Generate a QR code for http://10.42.0.1:3000"
-        echo "     and post it in every classroom"
+# Collect LAN IP if needed
+LAN_IP=""
+if [ "${CONNECTION_CHOICE}" = "2" ] || [ "${CONNECTION_CHOICE}" = "3" ]; then
+    echo ""
+    read -p "Enter LAN IP address for this server (e.g. 192.168.1.100): " LAN_IP
+    if [ -z "${LAN_IP}" ]; then
+        echo "WARNING: No LAN IP entered -- skipping LAN configuration"
+        if [ "${CONNECTION_CHOICE}" = "2" ]; then
+            echo "Falling back to hotspot only"
+            CONNECTION_METHOD="hotspot"
+            CONNECTION_CHOICE="1"
+        fi
     fi
 fi
 
+# Store connection config in .env.school
+echo "CONNECTION_METHOD=${CONNECTION_METHOD}" >> "${REPO_DIR}/.env.school"
+echo "LAN_IP=${LAN_IP}" >> "${REPO_DIR}/.env.school"
+
+# ------------------------------------------------------------
+# Hotspot setup -- runs for Option 1 and Option 3
+# ------------------------------------------------------------
+HOTSPOT_CONFIGURED=false
+
+if [ "${CONNECTION_CHOICE}" = "1" ] || [ "${CONNECTION_CHOICE}" = "3" ]; then
+
+    if ! command -v nmcli &> /dev/null; then
+        echo "nmcli not found -- skipping hotspot setup"
+        echo "Install with: sudo apt-get install network-manager"
+    else
+        HOTSPOT_NAME="Camara-${SCHOOL_ID}"
+        HOTSPOT_PASSWORD="camara${SCHOOL_ID//[-]}"
+
+        WIFI_ADAPTER=$(nmcli device status | grep wifi | head -1 | awk '{print $1}')
+        if [ -z "${WIFI_ADAPTER}" ]; then
+            echo "No WiFi adapter found -- skipping hotspot setup"
+        else
+            echo "Setting up hotspot on adapter: ${WIFI_ADAPTER}"
+
+            # Delete existing hotspot connection if present
+            nmcli connection delete "${HOTSPOT_NAME}" 2>/dev/null || true
+
+            # Create new hotspot connection
+            nmcli connection add \
+                type wifi \
+                ifname "${WIFI_ADAPTER}" \
+                con-name "${HOTSPOT_NAME}" \
+                autoconnect yes \
+                ssid "${HOTSPOT_NAME}" \
+                -- \
+                wifi.mode ap \
+                wifi-sec.key-mgmt wpa-psk \
+                wifi-sec.psk "${HOTSPOT_PASSWORD}" \
+                ipv4.method shared \
+                ipv4.addresses "10.42.0.1/24"
+
+            # Enable hotspot
+            nmcli connection up "${HOTSPOT_NAME}"
+            nmcli connection modify "${HOTSPOT_NAME}" connection.autoconnect yes
+
+            HOTSPOT_CONFIGURED=true
+
+            echo ""
+            echo "Hotspot configured:"
+            echo "  Network name: ${HOTSPOT_NAME}"
+            echo "  Password:     ${HOTSPOT_PASSWORD}"
+            echo "  Server IP:    10.42.0.1"
+            echo ""
+        fi
+    fi
+fi
+
+# ------------------------------------------------------------
+# LAN setup -- runs for Option 2 and Option 3
+# ------------------------------------------------------------
+LAN_CONFIGURED=false
+
+if [ "${CONNECTION_CHOICE}" = "2" ] || [ "${CONNECTION_CHOICE}" = "3" ]; then
+    if [ -n "${LAN_IP}" ]; then
+        echo "LAN configuration:"
+        echo "  LAN IP: ${LAN_IP}"
+        echo "  Students access Moodle at http://${LAN_IP}:3000"
+        echo "  Sync monitor at http://${LAN_IP}:8090"
+        echo "  Install page at http://${LAN_IP}:8090/install"
+        LAN_CONFIGURED=true
+        echo "LAN IP stored in .env.school"
+    fi
+fi
+
+# ------------------------------------------------------------
+# Set Moodle wwwroot based on connection method
+# Priority: hotspot IP if hotspot is configured, otherwise LAN IP
+# ------------------------------------------------------------
+if [ "${HOTSPOT_CONFIGURED}" = "true" ]; then
+    MOODLE_URL="http://10.42.0.1:3000"
+elif [ "${LAN_CONFIGURED}" = "true" ] && [ -n "${LAN_IP}" ]; then
+    MOODLE_URL="http://${LAN_IP}:3000"
+else
+    MOODLE_URL="http://localhost:3000"
+fi
+
+echo "MOODLE_URL=${MOODLE_URL}" >> "${REPO_DIR}/.env.school"
+
+docker exec -u www-data cdlaid_moodle php \
+    /var/www/html/admin/cli/cfg.php \
+    --name=wwwroot \
+    --set="${MOODLE_URL}" \
+    && echo "Moodle wwwroot updated to ${MOODLE_URL}" \
+    || echo "Could not update Moodle wwwroot -- update manually"
+
+# Print QR code hint
+if [ "${HOTSPOT_CONFIGURED}" = "true" ] || [ "${LAN_CONFIGURED}" = "true" ]; then
+    echo ""
+    echo "Tip: Generate a QR code for ${MOODLE_URL}"
+    echo "     and post it in every classroom"
+    echo "     Or visit http://10.42.0.1:8090/install for device setup"
+fi
+
+# ------------------------------------------------------------
+# Final summary
+# ------------------------------------------------------------
 echo ""
 echo "==================================="
 echo "Installation complete"
 echo "==================================="
-echo "  School:       ${SCHOOL_NAME}"
-echo "  School ID:    ${SCHOOL_ID}"
-echo "  Moodle:       http://10.42.0.1:3000"
-echo "  Sync monitor: http://10.42.0.1:8090/status"
-echo "  Data export:  http://10.42.0.1:8090/export"
+echo "  School:            ${SCHOOL_NAME}"
+echo "  School ID:         ${SCHOOL_ID}"
+echo "  Connection method: ${CONNECTION_METHOD}"
+echo "  Moodle URL:        ${MOODLE_URL}"
+if [ -n "${LAN_IP}" ]; then
+    echo "  LAN IP:            ${LAN_IP}"
+fi
+echo "  Sync monitor:      http://10.42.0.1:8090/status"
+echo "  Data export:       http://10.42.0.1:8090/export"
+echo "  Device install:    http://10.42.0.1:8090/install"
+echo "==================================="
+echo ""
+echo "To change connection method later:"
+echo "  Edit /opt/cdlaid/.env.school"
+echo "  Update CONNECTION_METHOD and LAN_IP"
+echo "  Then re-run: bash scripts/install_school.sh"
 echo "==================================="

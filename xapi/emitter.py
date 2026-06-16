@@ -1,5 +1,3 @@
-
-
 import json
 import os
 import sqlite3
@@ -13,7 +11,6 @@ from xapi.validator import (
     validate_query_type,
     calculate_fingerprint,
 )
-
 
 # Read all dynamic values from environment variables
 # pathlib.Path handles all OS path separators automatically
@@ -33,7 +30,6 @@ def _get_connection():
     # Create parent directory if it does not exist
     # parents=True creates all intermediate directories
     # exist_ok=True does not raise error if directory already exists
-
     QUEUE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(QUEUE_DB_PATH))
 
@@ -64,7 +60,6 @@ def _get_connection():
 
 def _now():
     # Returns current UTC time in ISO 8601 format with Z suffix
-
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
@@ -74,7 +69,7 @@ def _build_actor(student_id):
     return {
         "objectType": "Agent",
         "account": {
-            "name": student_id,
+            "name":     student_id,
             "homePage": XAPI_HOMEPAGE_URL,
         },
     }
@@ -90,7 +85,6 @@ def _build_camara_context(
     extra=None,
 ):
     # Builds Camara custom context extension
-
     ext = {
         "school_id":      school_id,
         "device_id":      device_id,
@@ -199,7 +193,6 @@ def emit_session_end(
     tracking_depth="full",
 ):
     # Emits a session-ended event
-
     statement = {
         "id":        str(uuid.uuid4()),
         "timestamp": _now(),
@@ -217,6 +210,43 @@ def emit_session_end(
         },
         "result": {
             "duration": "PT" + str(duration_seconds) + "S",
+        },
+        "context": _build_camara_context(
+            school_id, device_id, platform_id,
+            is_offline, server_id, tracking_depth,
+        ),
+    }
+    return _emit(statement)
+
+
+def emit_heartbeat(
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    server_id,
+    is_offline,
+    session_id,
+    tracking_depth="full",
+):
+    # Emits a session heartbeat event every 5 minutes while student is active
+    # Used to calculate accurate session duration if connection drops
+    # If session-ended is never received the last heartbeat timestamp
+    # is used by dbt to estimate session end time
+    statement = {
+        "id":        str(uuid.uuid4()),
+        "timestamp": _now(),
+        "actor":     _build_actor(student_id),
+        "verb": {
+            "id":      CAMARA_VERB_BASE + "/session-heartbeat",
+            "display": {"en-US": "heartbeat"},
+        },
+        "object": {
+            "id":         ACTIVITY_BASE + "/session/" + session_id,
+            "objectType": "Activity",
+            "definition": {
+                "type": ACTIVITY_BASE + "/types/session",
+            },
         },
         "context": _build_camara_context(
             school_id, device_id, platform_id,

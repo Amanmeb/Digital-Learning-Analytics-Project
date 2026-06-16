@@ -1,6 +1,4 @@
-
 import hashlib
-
 
 
 APPROVED_VERBS = [
@@ -24,6 +22,7 @@ APPROVED_VERBS = [
     # Camara custom verbs
     "https://camara.org/xapi/verbs/session-started",
     "https://camara.org/xapi/verbs/session-ended",
+    "https://camara.org/xapi/verbs/session-heartbeat",
     "https://camara.org/xapi/verbs/ai-queried",
     "https://camara.org/xapi/verbs/game-level-started",
     "https://camara.org/xapi/verbs/game-level-completed",
@@ -150,7 +149,9 @@ def validate_query_type(query_type):
 
 
 def calculate_fingerprint(statement):
-
+    # Calculates SHA-256 fingerprint from an xAPI statement dict
+    # Returns empty string if calculation fails
+    # Formula: SHA-256 of student_id|event_type|content_id|timestamp|school_id
     try:
         context = statement.get("context", {})
         extensions = context.get("extensions", {})
@@ -164,15 +165,37 @@ def calculate_fingerprint(statement):
         )
         event_type = statement.get("verb", {}).get("id", "")
         content_id = statement.get("object", {}).get("id", "")
-        timestamp = statement.get("timestamp", "")
-        school_id = camara_ext.get("school_id", "")
+        timestamp  = statement.get("timestamp", "")
+        school_id  = camara_ext.get("school_id", "")
 
         raw = (
             student_id + "|" +
             event_type + "|" +
             content_id + "|" +
-            timestamp + "|" +
+            timestamp  + "|" +
             school_id
+        )
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    except Exception:
+        return ""
+
+
+def calculate_fingerprint_from_parts(
+    student_id,
+    event_type,
+    content_id,
+    timestamp,
+    school_id,
+):
+    # Calculates fingerprint directly from individual fields
+    # Used by manual import routes
+    try:
+        raw = (
+            str(student_id) + "|" +
+            str(event_type) + "|" +
+            str(content_id) + "|" +
+            str(timestamp)  + "|" +
+            str(school_id)
         )
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
     except Exception:
