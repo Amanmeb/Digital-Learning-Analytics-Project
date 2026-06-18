@@ -12,7 +12,10 @@ from app.models.schemas import (
     FactAiUsageIn,
     FactAssessmentAttemptIn,
     FactContentUsageIn,
+    FactDeviceUsageIn,
+    FactSchoolDailySummaryIn,
     FactSessionIn,
+    FactSyncHealthIn,
     FactTeacherSessionIn,
 )
 
@@ -284,5 +287,153 @@ async def ingest_assessment_attempt(
             "date_key": record.date_id,
             "score": record.score,
             "completion": record.completion_status,
+        },
+    )
+
+
+@router.post("/ingest/school-daily-summary")
+async def ingest_school_daily_summary(
+    payload: dict[str, Any] = Body(...),
+    db: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    try:
+        record = FactSchoolDailySummaryIn(**payload)
+    except ValidationError as exc:
+        await _quarantine(db, "fact_school_daily_summary", payload, str(exc))
+        return JSONResponse(
+            status_code=200,
+            content={"status": "quarantined", "reason": "validation_failed"},
+        )
+
+    result = await db.execute(
+        text(
+            "SELECT 1 FROM mart.fact_school_daily_summary"
+            " WHERE school_id = :s AND date_key = :d"
+        ),
+        {"s": record.school_id, "d": record.date_id},
+    )
+    if result.scalar():
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "duplicate",
+                "school_id": record.school_id,
+                "date_id": record.date_id,
+            },
+        )
+
+    try:
+        await db.execute(
+            text(
+                "INSERT INTO mart.fact_school_daily_summary"
+                " (school_id, date_key, active_students, active_teachers,"
+                "  total_sessions, total_learning_minutes,"
+                "  total_ai_queries, total_content_accesses, offline_sessions)"
+                " VALUES (:school_id, :date_key, :active_students, :active_teachers,"
+                "         :total_sessions, :total_learning_minutes,"
+                "         :total_ai_queries, :total_content_accesses, :offline_sessions)"
+            ),
+            {
+                "school_id": record.school_id,
+                "date_key": record.date_id,
+                "active_students": record.active_students,
+                "active_teachers": record.active_teachers,
+                "total_sessions": record.total_sessions,
+                "total_learning_minutes": record.total_learning_minutes,
+                "total_ai_queries": record.total_ai_queries,
+                "total_content_accesses": record.total_content_accesses,
+                "offline_sessions": record.offline_sessions,
+            },
+        )
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        await _quarantine(db, "fact_school_daily_summary", payload, f"db_error: {exc}")
+        return JSONResponse(
+            status_code=200,
+            content={"status": "quarantined", "reason": "db_error"},
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "status": "accepted",
+            "school_id": record.school_id,
+            "date_id": record.date_id,
+        },
+    )
+
+
+@router.post("/ingest/device-usage")
+async def ingest_device_usage(
+    payload: dict[str, Any] = Body(...),
+    db: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    try:
+        record = FactDeviceUsageIn(**payload)
+    except ValidationError as exc:
+        await _quarantine(db, "fact_device_usage", payload, str(exc))
+        return JSONResponse(
+            status_code=200,
+            content={"status": "quarantined", "reason": "validation_failed"},
+        )
+    return await _ingest_fact(
+        db,
+        mart_table="mart.fact_device_usage",
+        pk_col="device_usage_id",
+        pk_value=record.device_usage_id,
+        payload=payload,
+        insert_sql=(
+            "INSERT INTO mart.fact_device_usage"
+            " (device_usage_id, device_id, school_id, date_key,"
+            "  total_usage_minutes, session_count)"
+            " VALUES (:duid, :device_id, :school_id, :date_key,"
+            "         :total_usage, :session_count)"
+        ),
+        insert_params={
+            "duid": record.device_usage_id,
+            "device_id": record.device_id,
+            "school_id": record.school_id,
+            "date_key": record.date_id,
+            "total_usage": record.total_usage_minutes,
+            "session_count": record.session_count,
+        },
+    )
+
+
+@router.post("/ingest/sync-health")
+async def ingest_sync_health(
+    payload: dict[str, Any] = Body(...),
+    db: AsyncSession = Depends(get_db),
+) -> JSONResponse:
+    try:
+        record = FactSyncHealthIn(**payload)
+    except ValidationError as exc:
+        await _quarantine(db, "fact_sync_health", payload, str(exc))
+        return JSONResponse(
+            status_code=200,
+            content={"status": "quarantined", "reason": "validation_failed"},
+        )
+    return await _ingest_fact(
+        db,
+        mart_table="mart.fact_sync_health",
+        pk_col="sync_health_id",
+        pk_value=record.sync_health_id,
+        payload=payload,
+        insert_sql=(
+            "INSERT INTO mart.fact_sync_health"
+            " (sync_health_id, device_id, school_id, date_key,"
+            "  status, records_synced, sync_duration_secs)"
+            " VALUES (:shid, :device_id, :school_id, :date_key,"
+            "         :status, :records_synced, :sync_duration_secs)"
+        ),
+        insert_params={
+            "shid": record.sync_health_id,
+            "device_id": record.device_id,
+            "school_id": record.school_id,
+            "date_key": record.date_id,
+            "status": record.status,
+            "records_synced": record.records_synced,
+            "sync_duration_secs": record.sync_duration_secs,
         },
     )
