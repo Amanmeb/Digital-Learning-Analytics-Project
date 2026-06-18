@@ -22,9 +22,9 @@
 
 ## Week 3–4: Core Ingestion
 
-- 🔄 Ingestion endpoints for remaining fact tables: `fact_teacher_session`, `fact_content_usage`, `fact_ai_usage`, `fact_assessment_attempt`
+- ✅ Ingestion endpoints for remaining fact tables: `fact_teacher_session`, `fact_content_usage`, `fact_ai_usage`, `fact_assessment_attempt`
+- 🔄 `fact_school_daily_summary`, `fact_device_usage`, `fact_sync_health` endpoints
 - ⬜ Bulk batch ingestion endpoint (`POST /api/v1/ingest/batch`)
-- ⬜ `fact_school_daily_summary`, `fact_device_usage`, `fact_sync_health` endpoints
 - ⬜ Date dimension auto-populate for new date_ids
 
 ## Week 5–6: Reliability & Ops
