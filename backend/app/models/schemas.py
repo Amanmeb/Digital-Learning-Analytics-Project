@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from pydantic import AfterValidator, BaseModel, Field, field_validator
 
@@ -78,3 +78,34 @@ class FactAssessmentAttemptIn(BaseModel):
     date_id: DateId
     score: float = Field(..., ge=0, le=100)
     completion_status: str = Field(..., min_length=1, max_length=20)
+
+
+class FactSchoolDailySummaryIn(BaseModel):
+    school_id: str = Field(..., min_length=1, max_length=20)
+    date_id: DateId
+    active_students: int = Field(..., ge=0)
+    total_sessions: int = Field(..., ge=0)
+    total_learning_minutes: int = Field(..., ge=0)
+    active_teachers: int = Field(0, ge=0)
+    total_ai_queries: int = Field(0, ge=0)
+    total_content_accesses: int = Field(0, ge=0)
+    offline_sessions: int = Field(0, ge=0)
+
+
+class FactDeviceUsageIn(BaseModel):
+    device_usage_id: str = Field(..., min_length=1, max_length=100)
+    device_id: str = Field(..., min_length=1, max_length=50)
+    school_id: str = Field(..., min_length=1, max_length=20)
+    date_id: DateId
+    total_usage_minutes: int = Field(..., ge=0)
+    session_count: int = Field(..., ge=0)
+
+
+class FactSyncHealthIn(BaseModel):
+    sync_health_id: str = Field(..., min_length=1, max_length=100)
+    device_id: str = Field(..., min_length=1, max_length=50)
+    school_id: str = Field(..., min_length=1, max_length=20)
+    date_id: DateId
+    status: str = Field(..., min_length=1, max_length=20)
+    records_synced: int = Field(0, ge=0)
+    sync_duration_secs: Optional[int] = Field(None, ge=0)
