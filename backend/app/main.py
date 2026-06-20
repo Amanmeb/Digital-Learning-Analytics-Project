@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.auth.router import router as auth_router
+from app.routers.dashboard import router as dashboard_router
 from app.routers import ingest
 
 app = FastAPI(
@@ -12,6 +13,7 @@ app = FastAPI(
 
 app.include_router(ingest.router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
 
 
 

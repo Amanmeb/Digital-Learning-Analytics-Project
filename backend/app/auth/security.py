@@ -2,6 +2,8 @@ from typing import Optional
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 from jose import jwt, JWTError
+import hashlib
+import secrets
 
 
 
@@ -46,6 +48,21 @@ def decode_token(token: str):
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         return None
+
+# def create_refresh_token():
+#     token = secrets.token_urlsafe(64)
+#     return token
+
+# def hash_token(token: str):
+#     return hashlib.sha256(token.encode()).hexdigest()
+
+# new
+def create_refresh_token():
+    return secrets.token_urlsafe(64)
+
+
+def hash_token(token: str):
+    return hashlib.sha256(token.encode()).hexdigest()
 
 # import os
 # from datetime import datetime, timedelta, timezone
