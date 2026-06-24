@@ -1,3 +1,5 @@
+name: cdlaid_central
+
 services:
   postgres:
     image: postgres:16.3-alpine
@@ -123,6 +125,14 @@ services:
 
 volumes:
   cdlaid_pg_data:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_pg_data
   cdlaid_mysql_data:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_mysql_data
   cdlaid_moodle_data:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_moodle_data
   cdlaid_superset_home:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_superset_home
