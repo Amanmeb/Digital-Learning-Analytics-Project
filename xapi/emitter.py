@@ -256,6 +256,84 @@ def emit_heartbeat(
     return _emit(statement)
 
 
+def emit_idle_start(
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    server_id,
+    is_offline,
+    session_id,
+    tracking_depth="full",
+):
+    # Emits an idle-started event
+    # Called when no input is detected past the idle threshold setting
+    # idle_threshold_minutes in ops.settings controls when this fires
+    statement = {
+        "id":        str(uuid.uuid4()),
+        "timestamp": _now(),
+        "actor":     _build_actor(student_id),
+        "verb": {
+            "id":      CAMARA_VERB_BASE + "/idle-started",
+            "display": {"en-US": "idle started"},
+        },
+        "object": {
+            "id":         ACTIVITY_BASE + "/session/" + session_id,
+            "objectType": "Activity",
+            "definition": {
+                "type": ACTIVITY_BASE + "/types/session",
+            },
+        },
+        "context": _build_camara_context(
+            school_id, device_id, platform_id,
+            is_offline, server_id, tracking_depth,
+        ),
+    }
+    return _emit(statement)
+
+
+def emit_idle_end(
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    server_id,
+    is_offline,
+    session_id,
+    idle_duration_seconds,
+    tracking_depth="full",
+):
+    # Emits an idle-ended event
+    # Called when input resumes after an idle period
+    # idle_duration_seconds is the time spent idle, used to subtract
+    # idle time from active learning time per the school setting that
+    # controls what counts as learning time
+    statement = {
+        "id":        str(uuid.uuid4()),
+        "timestamp": _now(),
+        "actor":     _build_actor(student_id),
+        "verb": {
+            "id":      CAMARA_VERB_BASE + "/idle-ended",
+            "display": {"en-US": "idle ended"},
+        },
+        "object": {
+            "id":         ACTIVITY_BASE + "/session/" + session_id,
+            "objectType": "Activity",
+            "definition": {
+                "type": ACTIVITY_BASE + "/types/session",
+            },
+        },
+        "result": {
+            "duration": "PT" + str(idle_duration_seconds) + "S",
+        },
+        "context": _build_camara_context(
+            school_id, device_id, platform_id,
+            is_offline, server_id, tracking_depth,
+        ),
+    }
+    return _emit(statement)
+
+
 def emit_content_accessed(
     student_id,
     school_id,

@@ -28,6 +28,8 @@ APPROVED_VERBS = [
     "https://camara.org/xapi/verbs/game-level-completed",
     "https://camara.org/xapi/verbs/game-level-failed",
     "https://camara.org/xapi/verbs/hint-requested",
+    "https://camara.org/xapi/verbs/idle-started",
+    "https://camara.org/xapi/verbs/idle-ended",
 ]
 
 
