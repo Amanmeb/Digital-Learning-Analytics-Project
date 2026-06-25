@@ -334,6 +334,68 @@ def emit_idle_end(
     return _emit(statement)
 
 
+def emit_resource_event(
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    server_id,
+    is_offline,
+    resource_id,
+    resource_name,
+    event_type,
+    duration_seconds=None,
+    tracking_depth="full",
+):
+    # Emits a device-tracking resource event
+    # event_type maps to a specific verb -- app/site/book opened or closed
+    # resource_id refers to a dim_resource_catalog row, not dim_content
+    # duration_seconds is only set on the closed events, None on opened
+    verb_map = {
+        "app_opened":    CAMARA_VERB_BASE + "/app-opened",
+        "app_closed":    CAMARA_VERB_BASE + "/app-closed",
+        "site_visited":  CAMARA_VERB_BASE + "/site-visited",
+        "site_left":     CAMARA_VERB_BASE + "/site-left",
+        "book_opened":   CAMARA_VERB_BASE + "/book-opened",
+        "book_closed":   CAMARA_VERB_BASE + "/book-closed",
+    }
+    verb_id = verb_map.get(event_type)
+    if verb_id is None:
+        _quarantine(
+            {"resource_id": resource_id, "event_type": event_type},
+            ["Unknown resource event_type: " + str(event_type)],
+        )
+        return False
+
+    statement = {
+        "id":        str(uuid.uuid4()),
+        "timestamp": _now(),
+        "actor":     _build_actor(student_id),
+        "verb": {
+            "id":      verb_id,
+            "display": {"en-US": event_type.replace("_", " ")},
+        },
+        "object": {
+            "id":         ACTIVITY_BASE + "/resource/" + resource_id,
+            "objectType": "Activity",
+            "definition": {
+                "name": {"en-US": resource_name},
+                "type": ACTIVITY_BASE + "/types/resource",
+            },
+        },
+        "context": _build_camara_context(
+            school_id, device_id, platform_id,
+            is_offline, server_id, tracking_depth,
+        ),
+    }
+    if duration_seconds is not None:
+        statement["result"] = {
+            "duration": "PT" + str(duration_seconds) + "S",
+        }
+
+    return _emit(statement)
+
+
 def emit_content_accessed(
     student_id,
     school_id,

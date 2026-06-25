@@ -30,6 +30,12 @@ APPROVED_VERBS = [
     "https://camara.org/xapi/verbs/hint-requested",
     "https://camara.org/xapi/verbs/idle-started",
     "https://camara.org/xapi/verbs/idle-ended",
+    "https://camara.org/xapi/verbs/app-opened",
+    "https://camara.org/xapi/verbs/app-closed",
+    "https://camara.org/xapi/verbs/site-visited",
+    "https://camara.org/xapi/verbs/site-left",
+    "https://camara.org/xapi/verbs/book-opened",
+    "https://camara.org/xapi/verbs/book-closed",
 ]
 
 
