@@ -1,0 +1,41 @@
+-- Migration 009
+-- New settings for student tracking, extends ops.settings 36 -> 71
+-- Additive only -- ON CONFLICT DO NOTHING, no existing setting touched
+
+INSERT INTO ops.settings (setting_key, setting_value, setting_scope, description) VALUES
+    ('password_min_length',          '6',                                'global', 'Minimum password length'),
+    ('pin_min_length',               '4',                                'global', 'Minimum PIN length'),
+    ('password_reset_allowed_roles', 'admin',                            'global', 'Comma list of roles allowed to reset passwords'),
+    ('idle_threshold_minutes',       '5',                                'global', 'Minutes with no input before idle starts'),
+    ('auto_logout_minutes',          '30',                               'global', 'Minutes idle before auto logout'),
+    ('retention_days_device',        '90',                               'global', 'Days tracking data kept on device'),
+    ('retention_days_school',        '365',                              'global', 'Days tracking data kept on school server'),
+    ('retention_days_central',       '730',                              'global', 'Days tracking data kept on central server'),
+    ('school_year_start_month',      '9',                                'global', 'School year start month, 1 to 12'),
+    ('school_year_end_month',        '7',                                'global', 'School year end month, 1 to 12'),
+    ('abnormal_absence_days',        '3',                                'global', 'Consecutive missed days before flagged'),
+    ('daily_learning_goal_minutes',  '60',                               'global', 'Default daily learning time target'),
+    ('failed_login_max_attempts',    '0',                                'global', 'Failed logins before lockout, 0 means no lockout'),
+    ('device_health_score_min',      '70',                               'global', 'Device health score below this is flagged'),
+    ('bandwidth_alert_mb_daily',     '500',                               'global', 'Daily bandwidth above this is flagged'),
+    ('notification_method',          'report_only',                      'global', 'Notification delivery method'),
+    ('scheduled_report_frequency',   'weekly',                           'global', 'Default scheduled report frequency'),
+    ('report_delivery_method',       'save_to_folder',                   'global', 'Default scheduled report delivery method'),
+    ('agent_auto_update',            'silent',                           'global', 'Tracking agent update behaviour'),
+    ('student_id_format',            'auto_generated',                   'global', 'Student ID assignment method'),
+    ('restricted_site_action',       'log_only',                         'global', 'Action taken on restricted site access'),
+    ('ai_tracking_methods',          'url,app_name,xapi,api',            'global', 'Comma list of active AI usage tracking methods'),
+    ('content_registration_methods', 'manual,auto_discovery,predefined', 'global', 'Comma list of active content registration methods'),
+    ('subject_linking_methods',      'app_tagging,student_select,none',  'global', 'Comma list of active subject linking methods'),
+    ('assessment_methods',           'builtin,external,csv',             'global', 'Comma list of active assessment methods'),
+    ('woreda_entry_mode',            'predefined_and_freetext',          'global', 'Woreda field entry mode'),
+    ('woreda_officer_scope',         'own_woreda',                       'global', 'Default data visibility scope for woreda officer role'),
+    ('donor_access_level',           'national_aggregated',              'global', 'Default data visibility scope for donor role'),
+    ('teacher_cross_class_access',   'restricted',                       'global', 'Whether teachers see other teachers students'),
+    ('amharic_translation_enabled',  'false',                            'global', 'Whether Amharic UI translation is active'),
+    ('report_export_formats',        'csv,pdf',                          'global', 'Comma list of active report export formats'),
+    ('session_hijack_action',        'flag_only',                       'global', 'Action taken on detected simultaneous login'),
+    ('sync_conflict_resolution',     'fingerprint_and_timestamp',        'global', 'Method used to resolve duplicate sync events'),
+    ('class_comparison_enabled',     'true',                             'global', 'Whether teachers see class-to-class comparison'),
+    ('shift_names',                  'full,morning,afternoon',           'global', 'Comma list of defined shifts, full is the default for schools with no shift split')
+ON CONFLICT DO NOTHING;
