@@ -344,6 +344,7 @@ def emit_resource_event(
     resource_id,
     resource_name,
     event_type,
+    session_id,
     duration_seconds=None,
     tracking_depth="full",
 ):
@@ -386,6 +387,7 @@ def emit_resource_event(
         "context": _build_camara_context(
             school_id, device_id, platform_id,
             is_offline, server_id, tracking_depth,
+            extra={"session_id": session_id},
         ),
     }
     if duration_seconds is not None:
