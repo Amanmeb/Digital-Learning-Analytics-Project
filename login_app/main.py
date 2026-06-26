@@ -1,0 +1,105 @@
+# CDLAID Login App -- student-facing entry point, replaces Moodle
+import os
+import uuid
+from datetime import datetime, timezone
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, Depends, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
+
+from login_app.database import get_db, check_db_connection
+from login_app.auth import authenticate_student, get_setting
+
+SCHOOL_ID = os.environ.get("SCHOOL_ID", "ET-AA-001")
+SERVER_ID = os.environ.get("SERVER_ID", "SRV-ET-AA-001-001")
+
+app = FastAPI(title="CDLAID Login App")
+templates = Jinja2Templates(directory="login_app/templates")
+app.mount("/assets", StaticFiles(directory="login_app/assets"), name="assets")
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_form(request: Request):
+    # Shows the login form with Camara and school branding
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "error": None},
+    )
+
+
+@app.post("/login", response_class=HTMLResponse)
+async def login_submit(
+    request: Request,
+    student_id: str = Form(...),
+    credential: str = Form(...),
+    db=Depends(get_db),
+):
+    # Authenticates the student and starts a tracking session
+    success, error_message, student = authenticate_student(db, student_id, credential)
+    if not success:
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": error_message},
+        )
+
+    session_id = str(uuid.uuid4())
+    login_time = datetime.now(timezone.utc).isoformat()
+
+    response = RedirectResponse(url="/welcome", status_code=303)
+    response.set_cookie("student_id", student_id, httponly=True)
+    response.set_cookie("session_id", session_id, httponly=True)
+    response.set_cookie("login_time", login_time, httponly=True)
+    response.set_cookie("full_name", student["full_name"], httponly=True)
+    return response
+
+
+@app.get("/welcome", response_class=HTMLResponse)
+async def welcome(request: Request, db=Depends(get_db)):
+    # Shows the post-login welcome screen with a simple time counter
+    student_id = request.cookies.get("student_id")
+    full_name = request.cookies.get("full_name")
+    if not student_id:
+        return RedirectResponse(url="/login")
+
+    today_minutes = db.execute(
+        text("""
+            SELECT coalesce(sum(session_duration_minutes), 0)
+            FROM mart.fact_session
+            WHERE student_id = :student_id
+            AND session_start::date = current_date
+        """),
+        {"student_id": student_id},
+    ).scalar()
+
+    daily_goal = int(get_setting(db, "daily_learning_goal_minutes", "60"))
+
+    return templates.TemplateResponse(
+        "welcome.html",
+        {
+            "request": request,
+            "full_name": full_name,
+            "today_minutes": today_minutes,
+            "daily_goal": daily_goal,
+        },
+    )
+
+
+@app.post("/logout")
+async def logout(request: Request):
+    # Ends the session and clears cookies
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie("student_id")
+    response.delete_cookie("session_id")
+    response.delete_cookie("login_time")
+    response.delete_cookie("full_name")
+    return response
+
+
+@app.get("/health")
+async def health():
+    # Simple health check endpoint
+    db_ok = check_db_connection()
+    return {"status": "ok" if db_ok else "db_unreachable"}
