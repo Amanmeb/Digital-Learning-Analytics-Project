@@ -64,6 +64,7 @@ services:
       DATABASE_URL: postgresql://cdlaid_user:CdlaidDB2025!Strong@postgres:5432/cdlaid_school
       SCHOOL_ID: ${SCHOOL_ID:-ET-AA-001}
       SERVER_ID: ${SERVER_ID:-SRV-ET-AA-001-001}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-cdlaid_admin_dev_key_2026}
     depends_on:
       postgres:
         condition: service_healthy

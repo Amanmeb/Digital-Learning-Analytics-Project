@@ -12,9 +12,18 @@ from sqlalchemy import text
 
 from login_app.database import get_db, check_db_connection
 from login_app.auth import authenticate_student, get_setting
+from login_app.registration import register_student, import_students_bulk
+from fastapi import Header, File, UploadFile
 
 SCHOOL_ID = os.environ.get("SCHOOL_ID", "ET-AA-001")
 SERVER_ID = os.environ.get("SERVER_ID", "SRV-ET-AA-001-001")
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY", "")
+
+
+def validate_admin_key(x_admin_key=Header(None)):
+    # Validates the admin API key from request header
+    # Full admin login UI is a separate future task
+    return x_admin_key == ADMIN_API_KEY and ADMIN_API_KEY != ""
 
 app = FastAPI(title="CDLAID Login App")
 templates = Jinja2Templates(directory="login_app/templates")
@@ -96,6 +105,56 @@ async def logout(request: Request):
     response.delete_cookie("login_time")
     response.delete_cookie("full_name")
     return response
+
+
+@app.post("/admin/students/register")
+async def admin_register_student(
+    full_name: str = Form(...),
+    grade_id: str = Form(...),
+    gender: str = Form(...),
+    language_preference: str = Form("English"),
+    id_type: str = Form("password"),
+    credential: str = Form(None),
+    class_id: str = Form(None),
+    x_admin_key: str = Header(None),
+    db=Depends(get_db),
+):
+    # Registers a single student manually
+    if not validate_admin_key(x_admin_key):
+        return {"error": "Invalid or missing admin key"}
+
+    success, student_id, error = register_student(
+        db,
+        school_id=SCHOOL_ID,
+        full_name=full_name,
+        grade_id=grade_id,
+        gender=gender,
+        language_preference=language_preference,
+        id_type=id_type,
+        credential=credential,
+        class_id=class_id,
+    )
+    if not success:
+        return {"success": False, "error": error}
+    return {"success": True, "student_id": student_id}
+
+
+@app.post("/admin/students/import")
+async def admin_import_students(
+    file: UploadFile = File(...),
+    x_admin_key: str = Header(None),
+    db=Depends(get_db),
+):
+    # Imports students in bulk from CSV or Excel
+    if not validate_admin_key(x_admin_key):
+        return {"error": "Invalid or missing admin key"}
+
+    file_bytes = await file.read()
+    try:
+        result = import_students_bulk(db, SCHOOL_ID, file_bytes, file.filename)
+    except ValueError as e:
+        return {"error": str(e)}
+    return result
 
 
 @app.get("/health")
