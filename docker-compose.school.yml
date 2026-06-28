@@ -8,7 +8,7 @@ services:
       - "5433:5432"
     environment:
       POSTGRES_USER: cdlaid_user
-      POSTGRES_PASSWORD: CdlaidDB2025!Strong
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}
       POSTGRES_DB: cdlaid_school
     volumes:
       - cdlaid_school_pg_data:/var/lib/postgresql/data
@@ -25,7 +25,7 @@ services:
       - "8089:8088"
     environment:
       SUPERSET_SECRET_KEY: cdlaid_school_superset_secret_key_2025_strong
-      SUPERSET_ADMIN_PASSWORD: CdlaidAdmin2025!
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-CdlaidAdmin2025!}
       SUPERSET_ADMIN_EMAIL: admin@camara.school
     depends_on:
       postgres:
@@ -61,7 +61,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://cdlaid_user:CdlaidDB2025!Strong@postgres:5432/cdlaid_school
+      DATABASE_URL: postgresql://cdlaid_user:${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}@postgres:5432/cdlaid_school
       SCHOOL_ID: ${SCHOOL_ID:-ET-AA-001}
       SERVER_ID: ${SERVER_ID:-SRV-ET-AA-001-001}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-cdlaid_admin_dev_key_2026}
