@@ -16,7 +16,8 @@ with school_counts as (
 today_reporting as (
     select
         count(distinct school_id)                       as schools_reporting_today
-    from core.core_school_summary
+    from {{ ref('core_school_summary') }}
+    -- from core.core_school_summary
     where summary_date = current_date
 ),
 

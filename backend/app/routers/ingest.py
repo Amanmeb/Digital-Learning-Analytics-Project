@@ -1,17 +1,17 @@
 import logging
 
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
-from fastapi import status
+from fastapi import APIRouter, Depends, HTTPException, status
+
+# from app.models.schemas import FactSessionIn
+# from app.services.exceptions import (
+#     DuplicateError,
+#     NotFoundError,
+# )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.schemas import FactSessionIn
-from app.services.ingestion import ingest_session
-from app.services.exceptions import (
-    NotFoundError,
-    DuplicateError,
-)
+from app.models.schemas import XAPIStatementIn
+from app.services.ingestion import ingest_xapi_statement
 
 logger = logging.getLogger(__name__)
 
@@ -19,43 +19,78 @@ router = APIRouter(tags=["ingest"])
 
 
 @router.post(
-    "/sessions",
+    "/ingest/xapi",
     status_code=status.HTTP_201_CREATED,
 )
-async def create_session(
-    payload: FactSessionIn,
-    db=Depends(get_db),
+async def ingest_xapi(
+    payload: XAPIStatementIn,
+    db: AsyncSession = Depends(get_db),
 ):
+    """
+    Receive a complete xAPI statement and persist it unchanged
+    into raw.xapi_statements.
+
+    No business validation occurs here.
+    dbt is responsible for transforming raw events into analytics models.
+    """
+
     try:
-        session = await ingest_session(payload, db)
+
+        result = await ingest_xapi_statement(payload, db)
 
         return {
             "status": "success",
-            "message": "Session created",
-            "data": {
-                "session_id": session.session_id,
-            },
+            "message": "xAPI statement ingested",
+            "data": result,
         }
 
-    except NotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
-
-    except DuplicateError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
-        )
-
     except Exception:
-        logger.exception("session_ingest_failed")
+
+        logger.exception("xapi_ingest_failed")
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error",
+            detail="Failed to ingest xAPI statement",
         )
+
+# @router.post(
+#     "/sessions",
+#     status_code=status.HTTP_201_CREATED,
+# )
+# async def create_session(
+#     payload: FactSessionIn,
+#     db=Depends(get_db),
+# ):
+#     try:
+#         session = await ingest_session(payload, db)
+
+#         return {
+#             "status": "success",
+#             "message": "Session created",
+#             "data": {
+#                 "session_id": session.session_id,
+#             },
+#         }
+
+#     except NotFoundError as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail=str(e),
+#         )
+
+#     except DuplicateError as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_409_CONFLICT,
+#             detail=str(e),
+#         )
+
+#     except Exception:
+#         logger.exception("session_ingest_failed")
+
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail="Internal server error",
+#         )
 
         # logger.error("DB insert failed", exc_info=True)
 

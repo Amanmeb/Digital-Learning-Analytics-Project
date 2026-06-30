@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 from typing import Any
+
+from pydantic import BaseModel
+
 
 class DashboardCards(BaseModel):
     sessions: int | None = None

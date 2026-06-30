@@ -1,5 +1,6 @@
 from sqlalchemy import text
 
+
 async def get_dashboard_summary(db, user):
     role = user.get("role")
 

@@ -1,35 +1,42 @@
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.audit_events import AuditEvent
 from app.auth.deps import get_current_user
-from app.auth.schemas import LoginRequest, RegisterRequest, LogoutRequest, RefreshRequest, LogoutDeviceRequest, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
-from app.auth.security import create_access_token, hash_password, verify_password, create_refresh_token,hash_token, decode_token
-from app.database import get_db
-from datetime import datetime, timedelta, timezone
-import secrets
-import hashlib
 from app.auth.rbac import require_roles
 from app.auth.roles import Roles
+from app.auth.schemas import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    LogoutDeviceRequest,
+    LogoutRequest,
+    RefreshRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+)
+from app.auth.security import (
+    create_access_token,
+    create_refresh_token,
+    hash_password,
+    hash_token,
+    verify_password,
+)
+from app.database import get_db
 from app.services.audit import log_event
-from app.auth.audit_events import AuditEvent
 from app.services.password_reset import (
     generate_reset_token,
     hash_reset_token,
 )
+
 # now = datetime.utcnow()
 now = datetime.now(timezone.utc) 
 datetime.now(timezone.utc)
 
-
-def create_refresh_token() -> str:
-    return secrets.token_urlsafe(64)
-
-
-def hash_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
 
 router = APIRouter(
     prefix="/auth",
@@ -252,6 +259,7 @@ async def register(
     payload: RegisterRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    user_id = str(uuid4())
     existing = await db.execute(
         text("SELECT 1 FROM auth.users WHERE email = :email"),
         {"email": payload.email},

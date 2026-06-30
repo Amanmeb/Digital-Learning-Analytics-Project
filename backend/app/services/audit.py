@@ -1,6 +1,8 @@
-from sqlalchemy import text
 import json
 from uuid import uuid4
+
+from sqlalchemy import text
+
 
 async def log_event(
     db,

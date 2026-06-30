@@ -1,6 +1,5 @@
-from uuid import uuid4
-from secrets import token_urlsafe
 from hashlib import sha256
+from secrets import token_urlsafe
 
 
 def generate_reset_token():

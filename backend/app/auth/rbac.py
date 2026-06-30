@@ -1,8 +1,9 @@
+
 from fastapi import Depends, HTTPException, status
-from functools import wraps
 
 from app.auth.deps import get_current_user
 from app.auth.roles import Roles
+
 
 def require_roles(*allowed_roles: Roles):
     """

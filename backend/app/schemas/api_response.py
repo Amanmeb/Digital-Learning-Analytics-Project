@@ -1,7 +1,8 @@
 # app/schemas/api_response.py
 
-from pydantic import BaseModel
 from typing import Any, Optional
+
+from pydantic import BaseModel
 
 
 class ApiResponse(BaseModel):

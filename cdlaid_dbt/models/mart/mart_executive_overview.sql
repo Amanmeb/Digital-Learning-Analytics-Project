@@ -17,8 +17,13 @@ with school_summary as (
         ss.offline_sessions,
         ss.students_used_ai
     from {{ ref("core_school_summary") }} ss
-    join mart.dim_school s on ss.school_id = s.school_id
-    join mart.dim_region r on s.region_id = r.region_id
+    left join mart.dim_school s
+    on ss.school_id = s.school_id
+
+    left join mart.dim_region r
+    on s.region_id = r.region_id
+    -- join mart.dim_school s on ss.school_id = s.school_id
+    -- join mart.dim_region r on s.region_id = r.region_id
 ),
 
 registered as (

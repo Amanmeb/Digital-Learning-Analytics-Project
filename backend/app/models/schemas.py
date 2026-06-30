@@ -1,10 +1,13 @@
-from typing import Annotated, Optional
+from datetime import datetime
+from typing import Annotated, Any, Optional
 
-from pydantic import AfterValidator, BaseModel, Field, field_validator
-from pydantic import BaseModel, EmailStr
-
-
-
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    EmailStr,
+    Field,
+    field_validator,
+)
 
 
 def _check_date_id(v: int) -> int:
@@ -34,6 +37,20 @@ class RegisterRequest(BaseModel):
     role: str
     student_id: Optional[str] = None
     teacher_id: Optional[str] = None
+
+class XAPIStatementIn(BaseModel):
+    statement_id: str
+    server_id: str
+    school_id: str
+
+    actor: dict[str, Any]
+    verb: dict[str, Any]
+    object: dict[str, Any]
+
+    result: dict[str, Any] = {}
+    context: dict[str, Any] = {}
+
+    timestamp: datetime
 
 
 class FactSessionIn(BaseModel):
@@ -98,3 +115,5 @@ class FactAssessmentAttemptIn(BaseModel):
     date_id: DateId
     score: float = Field(..., ge=0, le=100)
     completion_status: str = Field(..., min_length=1, max_length=20)
+
+

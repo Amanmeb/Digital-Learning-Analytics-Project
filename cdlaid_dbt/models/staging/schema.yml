@@ -48,6 +48,14 @@ models:
   - name: mart_executive_overview
     description: National executive overview metrics
     columns:
-      - name: active_schools
+      - name: active_students
+        data_tests:
+          - not_null
+
+      - name: total_registered_students
+        data_tests:
+          - not_null
+
+      - name: active_rate_pct
         data_tests:
           - not_null
