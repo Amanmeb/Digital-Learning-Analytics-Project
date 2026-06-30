@@ -1,24 +1,21 @@
-import logging
-logger = logging.getLogger(__name__)
 import json
-from typing import Any
+import logging
 
-from fastapi import APIRouter, Body, Depends, HTTPException
-from fastapi.responses import JSONResponse
-from pydantic import ValidationError
-from sqlalchemy import text
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.schemas import FactSessionIn
-from app.auth.deps import get_current_user
-from app.auth.device import validate_device
-from app.models import DimStudent, DimDevice, DimProject, DimSchool, DimDate
-from app.models import FactSession
+from app.models import (
+    DimDate,
+    DimDevice,
+    DimProject,
+    DimSchool,
+    DimStudent,
+    FactSession,
+)
 
-
-
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ingest"])
 
