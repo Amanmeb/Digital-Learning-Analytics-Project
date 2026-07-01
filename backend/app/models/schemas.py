@@ -55,7 +55,7 @@ class XAPIStatementIn(BaseModel):
 
 class FactSessionIn(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=100)
-    # student_id: str = Field(..., min_length=1, max_length=50)
+    student_id: str = Field(..., min_length=1, max_length=50)
     school_id: str = Field(..., min_length=1, max_length=20)
     device_id: str = Field(..., min_length=1, max_length=50)
     platform_id: str = Field(..., min_length=1, max_length=20)

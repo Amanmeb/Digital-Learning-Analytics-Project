@@ -1,9 +1,8 @@
-print("Loading main.py")
 from fastapi import FastAPI
 
 from app.auth.router import router as auth_router
-from app.routers.ingest import router as ingest_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers.ingest import router as ingest_router
 
 app = FastAPI(
     title="CDLAID Ingestion API",
@@ -11,10 +10,6 @@ app = FastAPI(
     docs_url="/api/docs",
     redoc_url=None,
 )
-
-# app.include_router(ingest.router, prefix="/api/v1")
-# app.include_router(auth_router, prefix="/api/v1")
-# app.include_router(dashboard_router, prefix="/api/v1")
 
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")

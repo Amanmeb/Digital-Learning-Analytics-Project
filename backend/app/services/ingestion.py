@@ -1,6 +1,5 @@
 import hashlib
 import json
-from datetime import datetime
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,10 +28,7 @@ def normalize(statement: XAPIStatementIn) -> dict:
     return dict(statement)
 
 
-# async def ingest_xapi_statement(
-#     payload: XAPIStatementIn,
-#     db: AsyncSession,
-# ) -> dict:
+
 
 async def ingest_xapi_statement(
         statement: XAPIStatementIn,
