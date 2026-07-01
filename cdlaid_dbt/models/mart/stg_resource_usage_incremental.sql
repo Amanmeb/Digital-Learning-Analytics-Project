@@ -5,7 +5,7 @@
 {{ config(
     materialized="incremental",
     unique_key="resource_usage_id",
-    post_hook="insert into mart.fact_resource_usage select * from {{ this }} where event_fingerprint not in (select event_fingerprint from mart.fact_resource_usage) on conflict (resource_usage_id) do nothing"
+    post_hook=["insert into mart.dim_resource_catalog (resource_id, resource_name, resource_type, discovery_method, is_reviewed, is_active) select distinct resource_id, resource_id, case when resource_id like '%app%' then 'app' when resource_id like 'http%' then 'site' else 'unknown' end, 'auto_discovery', false, true from {{ this }} where resource_id is not null and resource_id not in (select resource_id from mart.dim_resource_catalog) on conflict (resource_id) do nothing", "insert into mart.fact_resource_usage select * from {{ this }} where event_fingerprint not in (select event_fingerprint from mart.fact_resource_usage) on conflict (resource_usage_id) do nothing"]
 ) }}
 
 with closed_events as (
