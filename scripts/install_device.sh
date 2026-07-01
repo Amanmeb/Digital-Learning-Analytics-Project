@@ -60,6 +60,30 @@ pip3 install requests --quiet --break-system-packages 2>/dev/null \
 echo "Packages installed"
 
 # ------------------------------------------------------------
+# Install window and idle detection tools
+# Required by edge/device_tracker.py on Linux -- xdotool detects the
+# active window and process, xprintidle reports seconds since last input
+# ------------------------------------------------------------
+
+echo ""
+echo "Installing window and idle detection tools"
+
+apt-get update -qq
+apt-get install -y -qq xdotool xprintidle
+
+if command -v xdotool &> /dev/null; then
+    echo "  xdotool               OK"
+else
+    echo "  xdotool               MISSING -- app and site tracking will not work"
+fi
+
+if command -v xprintidle &> /dev/null; then
+    echo "  xprintidle            OK"
+else
+    echo "  xprintidle            MISSING -- idle detection will not work"
+fi
+
+# ------------------------------------------------------------
 # Create installation directory
 # ------------------------------------------------------------
 
@@ -67,33 +91,42 @@ echo ""
 echo "Creating installation directory"
 
 mkdir -p /opt/cdlaid
+mkdir -p /opt/cdlaid/edge
 mkdir -p /opt/cdlaid/logs
 
 echo "Directory created: /opt/cdlaid"
 
 # ------------------------------------------------------------
-# Copy device agent to installation directory
+# Copy device agent and tracker to installation directory
+# Both files must live together under an edge/ package directory
+# because device_agent.py imports device_tracker.py as
+# "from edge.device_tracker import start_tracker"
 # ------------------------------------------------------------
 
 echo ""
-echo "Copying device agent"
+echo "Copying device agent and device tracker"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
 
-if [ -f "${PROJECT_DIR}/edge/device_agent.py" ]; then
-    cp "${PROJECT_DIR}/edge/device_agent.py" /opt/cdlaid/device_agent.py
-    echo "Device agent copied from ${PROJECT_DIR}/edge/device_agent.py"
-elif [ -f "/opt/cdlaid-repo/edge/device_agent.py" ]; then
-    cp /opt/cdlaid-repo/edge/device_agent.py /opt/cdlaid/device_agent.py
-    echo "Device agent copied from /opt/cdlaid-repo/edge/device_agent.py"
+if [ -f "${PROJECT_DIR}/edge/device_agent.py" ] && [ -f "${PROJECT_DIR}/edge/device_tracker.py" ]; then
+    cp "${PROJECT_DIR}/edge/device_agent.py" /opt/cdlaid/edge/device_agent.py
+    cp "${PROJECT_DIR}/edge/device_tracker.py" /opt/cdlaid/edge/device_tracker.py
+    touch /opt/cdlaid/edge/__init__.py
+    echo "Device agent and tracker copied from ${PROJECT_DIR}/edge/"
+elif [ -f "/opt/cdlaid-repo/edge/device_agent.py" ] && [ -f "/opt/cdlaid-repo/edge/device_tracker.py" ]; then
+    cp /opt/cdlaid-repo/edge/device_agent.py /opt/cdlaid/edge/device_agent.py
+    cp /opt/cdlaid-repo/edge/device_tracker.py /opt/cdlaid/edge/device_tracker.py
+    touch /opt/cdlaid/edge/__init__.py
+    echo "Device agent and tracker copied from /opt/cdlaid-repo/edge/"
 else
-    echo "ERROR: device_agent.py not found"
+    echo "ERROR: device_agent.py or device_tracker.py not found"
     echo "Make sure you are running this from the project root directory"
     exit 1
 fi
 
-echo "Device agent installed at /opt/cdlaid/device_agent.py"
+echo "Device agent installed at /opt/cdlaid/edge/device_agent.py"
+echo "Device tracker installed at /opt/cdlaid/edge/device_tracker.py"
 
 # ------------------------------------------------------------
 # Write environment configuration file
@@ -119,6 +152,8 @@ echo "Configuration written to /opt/cdlaid/device_agent.env"
 
 # ------------------------------------------------------------
 # Write systemd service file
+# Runs as a module (-m edge.device_agent) from /opt/cdlaid so the
+# "from edge.device_tracker import start_tracker" import resolves
 # ------------------------------------------------------------
 
 echo ""
@@ -135,7 +170,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/cdlaid
 EnvironmentFile=/opt/cdlaid/device_agent.env
-ExecStart=/usr/bin/python3 /opt/cdlaid/device_agent.py
+ExecStart=/usr/bin/python3 -m edge.device_agent
 Restart=always
 RestartSec=30
 StandardOutput=append:/opt/cdlaid/logs/device_agent.log
@@ -167,29 +202,41 @@ echo "Service enabled and started"
 echo ""
 echo "Verifying installation"
 
-if [ -f "/opt/cdlaid/device_agent.py" ]; then
-    echo "  device_agent.py      OK"
+if [ -f "/opt/cdlaid/edge/device_agent.py" ]; then
+    echo "  device_agent.py       OK"
 else
-    echo "  device_agent.py      MISSING"
+    echo "  device_agent.py       MISSING"
+fi
+
+if [ -f "/opt/cdlaid/edge/device_tracker.py" ]; then
+    echo "  device_tracker.py     OK"
+else
+    echo "  device_tracker.py     MISSING"
+fi
+
+if [ -f "/opt/cdlaid/edge/__init__.py" ]; then
+    echo "  edge/__init__.py      OK"
+else
+    echo "  edge/__init__.py      MISSING"
 fi
 
 if [ -f "/opt/cdlaid/device_agent.env" ]; then
-    echo "  device_agent.env     OK"
+    echo "  device_agent.env      OK"
 else
-    echo "  device_agent.env     MISSING"
+    echo "  device_agent.env      MISSING"
 fi
 
 if [ -f "/etc/systemd/system/cdlaid-device-agent.service" ]; then
-    echo "  systemd service      OK"
+    echo "  systemd service       OK"
 else
-    echo "  systemd service      MISSING"
+    echo "  systemd service       MISSING"
 fi
 
 sleep 2
 if systemctl is-active --quiet cdlaid-device-agent; then
-    echo "  service running      OK"
+    echo "  service running       OK"
 else
-    echo "  service running      FAILED -- check logs below"
+    echo "  service running       FAILED -- check logs below"
     journalctl -u cdlaid-device-agent --no-pager -n 20
 fi
 
