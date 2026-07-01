@@ -57,6 +57,23 @@ async def login_submit(
     session_id = str(uuid.uuid4())
     login_time = datetime.now(timezone.utc).isoformat()
 
+    # Creates the fact_session row at login time
+    # device_id, platform_id, date_key left null -- not captured at this stage
+    db.execute(
+        text("""
+            INSERT INTO mart.fact_session
+            (session_id, student_id, school_id, session_start, is_offline, session_duration_minutes)
+            VALUES (:session_id, :student_id, :school_id, :session_start, TRUE, 0)
+        """),
+        {
+            "session_id": session_id,
+            "student_id": student_id,
+            "school_id": SCHOOL_ID,
+            "session_start": login_time,
+        },
+    )
+    db.commit()
+
     response = RedirectResponse(url="/welcome", status_code=303)
     response.set_cookie("student_id", student_id, httponly=True)
     response.set_cookie("session_id", session_id, httponly=True)
@@ -69,6 +86,7 @@ async def login_submit(
 async def welcome(request: Request, db=Depends(get_db)):
     # Shows the post-login welcome screen with a simple time counter
     student_id = request.cookies.get("student_id")
+    session_id = request.cookies.get("session_id")
     full_name = request.cookies.get("full_name")
     if not student_id:
         return RedirectResponse(url="/login")
@@ -92,13 +110,37 @@ async def welcome(request: Request, db=Depends(get_db)):
             "full_name": full_name,
             "today_minutes": today_minutes,
             "daily_goal": daily_goal,
+            "student_id": student_id,
+            "session_id": session_id,
         },
     )
 
 
 @app.post("/logout")
-async def logout(request: Request):
-    # Ends the session and clears cookies
+async def logout(request: Request, db=Depends(get_db)):
+    # Closes the fact_session row and clears cookies
+    session_id = request.cookies.get("session_id")
+    login_time = request.cookies.get("login_time")
+
+    if session_id and login_time:
+        logout_dt = datetime.now(timezone.utc)
+        login_dt = datetime.fromisoformat(login_time)
+        duration_minutes = int((logout_dt - login_dt).total_seconds() / 60)
+
+        db.execute(
+            text("""
+                UPDATE mart.fact_session
+                SET session_end = :session_end, session_duration_minutes = :duration
+                WHERE session_id = :session_id
+            """),
+            {
+                "session_end": logout_dt.isoformat(),
+                "duration": duration_minutes,
+                "session_id": session_id,
+            },
+        )
+        db.commit()
+
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie("student_id")
     response.delete_cookie("session_id")

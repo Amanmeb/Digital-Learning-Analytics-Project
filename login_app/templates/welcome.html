@@ -50,9 +50,26 @@
         <div class="time-counter">{{ today_minutes }} min</div>
         <div class="time-label">logged in today</div>
         <div class="goal">Daily goal: {{ daily_goal }} minutes</div>
-        <form method="post" action="/logout">
+        <form method="post" action="/logout" id="logout-form">
             <button type="submit" class="btn-logout">Log out</button>
         </form>
     </div>
+    <script>
+        // Notifies the local device tracker agent, if one is running.
+        // Fails silently if no agent is present on this device -- login
+        // still works normally without local tracking.
+        fetch("http://localhost:8091/identity", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                student_id: "{{ student_id }}",
+                session_id: "{{ session_id }}"
+            })
+        }).catch(function () {});
+
+        document.getElementById("logout-form").addEventListener("submit", function () {
+            fetch("http://localhost:8091/identity", { method: "DELETE" }).catch(function () {});
+        });
+    </script>
 </body>
 </html>

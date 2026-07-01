@@ -18,6 +18,8 @@ from pathlib import Path
 
 import requests
 
+from edge.device_tracker import start_tracker
+
 # ------------------------------------------------------------
 # Configuration from environment variables
 # Set by install_device.bat or install_device.sh at install time
@@ -359,6 +361,8 @@ def run():
     logger.info("Receiver:   " + RECEIVER_URL)
 
     create_tables()
+
+    start_tracker(SCHOOL_ID, DEVICE_ID, SERVER_ID, insert_event)
 
     while True:
         if is_hotspot_reachable():
