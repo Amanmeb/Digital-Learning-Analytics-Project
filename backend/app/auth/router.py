@@ -288,7 +288,7 @@ async def register(
             )
         """),
         {
-            "user_id": str(uuid4()),
+            "user_id": user_id,
             "email": payload.email,
             "password_hash": hash_password(payload.password),
             "role": payload.role,

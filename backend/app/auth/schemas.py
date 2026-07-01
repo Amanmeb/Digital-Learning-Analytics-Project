@@ -21,11 +21,11 @@ class RefreshTokenRequest(BaseModel):
 class LogoutRequest(BaseModel):
     refresh_token: str
 
-class LogoutDeviceRequest(BaseModel):
-    refresh_token: str
-
 # class LogoutDeviceRequest(BaseModel):
-#     session_id: str
+#     refresh_token: str
+
+class LogoutDeviceRequest(BaseModel):
+    session_id: str
 
 class RefreshRequest(BaseModel):
     refresh_token: str
