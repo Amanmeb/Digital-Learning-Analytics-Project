@@ -213,6 +213,25 @@ def get_idle_seconds():
 
 class IdentityHandler(BaseHTTPRequestHandler):
     # Tiny HTTP handler -- receives student identity from login app
+    # CORS headers are required because welcome.html is served from
+    # localhost:3000 (login_app) while this server runs on localhost:8091 --
+    # different ports count as different origins to the browser
+    def _send_cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "POST, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+    def do_OPTIONS(self):
+        # Handles the CORS preflight request the browser sends before
+        # the actual POST/DELETE when the request is cross-origin
+        if self.path == "/identity":
+            self.send_response(200)
+            self._send_cors_headers()
+            self.end_headers()
+            return
+        self.send_response(404)
+        self.end_headers()
+
     def do_POST(self):
         # POST /identity -- called by login app after successful login
         # Body: {"student_id": "...", "session_id": "..."}
@@ -226,24 +245,30 @@ class IdentityHandler(BaseHTTPRequestHandler):
                 session_id = data.get("session_id", "")
                 if student_id and session_id:
                     set_student_identity(student_id, session_id)
+                    print("IDENTITY POST RECEIVED: student_id=" + student_id + " session_id=" + session_id)
                     self.send_response(200)
+                    self._send_cors_headers()
                     self.end_headers()
                     self.wfile.write(b'{"ok":true}')
                     return
             except Exception:
                 pass
         self.send_response(400)
+        self._send_cors_headers()
         self.end_headers()
 
     def do_DELETE(self):
         # DELETE /identity -- called by login app on logout
         if self.path == "/identity":
             clear_student_identity()
+            print("IDENTITY DELETE RECEIVED")
             self.send_response(200)
+            self._send_cors_headers()
             self.end_headers()
             self.wfile.write(b'{"ok":true}')
             return
         self.send_response(400)
+        self._send_cors_headers()
         self.end_headers()
 
     def log_message(self, format_str, *args):
