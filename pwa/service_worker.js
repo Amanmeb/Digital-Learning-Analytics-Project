@@ -1,5 +1,5 @@
 // Service Worker for Camara Learning PWA
-// Caches Moodle pages for offline access
+// Caches app shell pages for offline access
 // Intercepts xAPI requests and stores them in IndexedDB when offline
 // Syncs queued events to the school server when connection is detected
 // Works on Android Chrome and Chromebook
