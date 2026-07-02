@@ -1,13 +1,15 @@
 -- Core model joining school-level activity with the geo hierarchy
 -- One row per active school -- feeds mart_geo_region and mart_geo_country
 -- Latitude/longitude carried through for map-based dashboards
+-- dim_school.geo_id points to the zone/sub-city level (level 3) --
+-- this model walks up through parent_geo_id to reach region and country
 
 with school_geo as (
     select
         s.school_id,
         s.school_name,
         s.school_type,
-        s.geo_id                                    as region_geo_id,
+        s.geo_id                                    as zone_geo_id,
         s.latitude,
         s.longitude,
         s.total_students                            as registered_students,
@@ -15,6 +17,15 @@ with school_geo as (
     from mart.dim_school s
     where s.is_active = true
       and s.geo_id is not null
+),
+
+zone_lookup as (
+    select
+        geo_id          as zone_geo_id,
+        node_name       as zone_name,
+        parent_geo_id   as region_geo_id
+    from mart.dim_geo_node
+    where level_number = 3
 ),
 
 region_lookup as (
@@ -54,7 +65,9 @@ select
     sg.registered_students,
     sg.latitude,
     sg.longitude,
-    sg.region_geo_id,
+    sg.zone_geo_id,
+    zl.zone_name,
+    zl.region_geo_id,
     rl.region_name,
     rl.country_geo_id,
     cl.country_name,
@@ -80,6 +93,7 @@ select
         else 0
     end                                        as ai_adoption_rate_pct
 from school_geo sg
-left join region_lookup rl on sg.region_geo_id = rl.region_geo_id
+left join zone_lookup zl on sg.zone_geo_id = zl.zone_geo_id
+left join region_lookup rl on zl.region_geo_id = rl.region_geo_id
 left join country_lookup cl on rl.country_geo_id = cl.country_geo_id
 left join school_activity sa on sg.school_id = sa.school_id
