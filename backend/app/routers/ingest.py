@@ -13,7 +13,10 @@ from app.models.schemas import (
     FactAiUsageIn,
     FactAssessmentAttemptIn,
     FactContentUsageIn,
+    FactDeviceUsageIn,
+    FactSchoolDailySummaryIn,
     FactSessionIn,
+    FactSyncHealthIn,
     FactTeacherSessionIn,
     XAPIStatementIn,
 )
