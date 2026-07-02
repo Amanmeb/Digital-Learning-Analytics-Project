@@ -13,6 +13,7 @@ from sqlalchemy import text
 from login_app.database import get_db, check_db_connection
 from login_app.auth import authenticate_student, get_setting
 from login_app.registration import register_student, import_students_bulk
+from login_app.geo import get_zones, get_woredas, resolve_or_create_woreda, assign_school_woreda
 from fastapi import Header, File, UploadFile
 
 SCHOOL_ID = os.environ.get("SCHOOL_ID", "ET-AA-001")
@@ -197,6 +198,50 @@ async def admin_import_students(
     except ValueError as e:
         return {"error": str(e)}
     return result
+
+
+@app.get("/admin/geo/zones")
+async def admin_list_zones(x_admin_key: str = Header(None), db=Depends(get_db)):
+    # Lists existing zone-level nodes, for the woreda-assignment picker
+    if not validate_admin_key(x_admin_key):
+        return {"error": "Invalid or missing admin key"}
+    return {"zones": get_zones(db)}
+
+
+@app.get("/admin/geo/woredas")
+async def admin_list_woredas(zone_geo_id: str, x_admin_key: str = Header(None), db=Depends(get_db)):
+    # Lists existing woredas already entered under a given zone
+    if not validate_admin_key(x_admin_key):
+        return {"error": "Invalid or missing admin key"}
+    return {"woredas": get_woredas(db, zone_geo_id)}
+
+
+@app.post("/admin/schools/{school_id}/woreda")
+async def admin_assign_school_woreda(
+    school_id: str,
+    woreda_geo_id: str = Form(None),
+    zone_geo_id: str = Form(None),
+    woreda_name: str = Form(None),
+    x_admin_key: str = Header(None),
+    db=Depends(get_db),
+):
+    # Assigns a school to a woreda -- either an existing one picked from
+    # the list (woreda_geo_id) or a new one to insert (zone_geo_id + woreda_name)
+    if not validate_admin_key(x_admin_key):
+        return {"error": "Invalid or missing admin key"}
+
+    resolved_geo_id, error = resolve_or_create_woreda(db, woreda_geo_id, zone_geo_id, woreda_name)
+    if error:
+        db.rollback()
+        return {"success": False, "error": error}
+
+    updated = assign_school_woreda(db, school_id, resolved_geo_id)
+    if not updated:
+        db.rollback()
+        return {"success": False, "error": "school_id not found"}
+
+    db.commit()
+    return {"success": True, "school_id": school_id, "geo_id": resolved_geo_id}
 
 
 @app.get("/health")
