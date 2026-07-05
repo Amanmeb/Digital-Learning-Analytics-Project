@@ -2,14 +2,17 @@
 -- Produces daily rows for trend charts plus national KPI totals
 -- One row per day per school for trend lines
 -- Aggregate in Superset for national totals
+-- region_id/dim_region replaced with a walk through dim_geo_node --
+-- dim_school.geo_id points to the zone level, so this walks up one
+-- level via parent_geo_id to reach the equivalent region
 
 with school_summary as (
     select
         s.school_id,
         s.school_name,
         s.school_type,
-        r.region_id,
-        r.region_name,
+        rg.geo_id                                as region_geo_id,
+        rg.node_name                             as region_name,
         ss.summary_date,
         ss.active_students,
         ss.total_sessions,
@@ -18,9 +21,9 @@ with school_summary as (
         ss.students_used_ai
     from {{ ref("core_school_summary") }} ss
     join mart.dim_school s on ss.school_id = s.school_id
-    join mart.dim_region r on s.region_id = r.region_id
+    left join mart.dim_geo_node zg on s.geo_id = zg.geo_id
+    left join mart.dim_geo_node rg on zg.parent_geo_id = rg.geo_id
 ),
-
 registered as (
     select
         school_id,
@@ -29,13 +32,12 @@ registered as (
     where is_active = true
     group by school_id
 )
-
 select
     ss.summary_date,
     ss.school_id,
     ss.school_name,
     ss.school_type,
-    ss.region_id,
+    ss.region_geo_id,
     ss.region_name,
     ss.active_students,
     ss.total_sessions,
