@@ -1,4 +1,5 @@
 from sqlalchemy import text
+# from unittest import result
 
 
 async def get_dashboard_summary(db, user):
@@ -27,7 +28,9 @@ async def admin_dashboard(db):
     row = result.mappings().first()
     return {
         "scope": "admin",
-        "data": dict(row)
+        "cards": dict(row),
+        "charts": [],
+        "recent_activity": [],
     }
 
 async def teacher_dashboard(db, user):
@@ -64,6 +67,97 @@ async def student_dashboard(db, user):
         #     "message": "student analytics placeholder"
         # }
     }
+
+async def get_platform_dashboard(db, user):
+    result = await db.execute(
+        text("""
+            SELECT
+                school_id,
+                platform_id,
+                platform_name,
+                platform_type,
+                tracking_depth,
+                unique_students,
+                total_sessions,
+                avg_session_minutes,
+                total_minutes,
+                offline_sessions,
+                offline_pct,
+                sync_health_pct,
+                total_syncs,
+                successful_syncs,
+                active_devices,
+                avg_usage_minutes,
+                total_usage_minutes,
+                refreshed_at
+            FROM mart.mart_platform_analytics
+            ORDER BY total_sessions DESC
+        """)
+    )
+
+    rows = result.mappings().all()
+
+    return {"data": rows}
+
+
+async def get_school_dashboard(db, user):
+    result = await db.execute(
+        text("""
+            SELECT
+                school_id,
+                date_key,
+                total_syncs,
+                successful_syncs,
+                sync_health_pct,
+                active_devices,
+                avg_usage_minutes,
+                total_sessions,
+                total_usage_minutes,
+                refreshed_at
+            FROM mart.mart_device_infrastructure
+            ORDER BY date_key DESC
+        """)
+    )
+
+    rows = result.mappings().all()
+
+    return {"data": rows}
+                    # school_id,
+                # school_name,
+                # region_id,
+                # school_type,
+                # total_students,
+                # active_students,
+                # total_sessions,
+                # total_learning_hours,
+                # registration_coverage_pct,
+                # performance_index,
+                # last_active_date,
+                # risk_flag,
+                # refreshed_at
+
+
+async def get_device_dashboard(db, user): 
+    result = await db.execute(
+        text("""
+            SELECT
+                device_id,
+                device_name,
+                school_id,
+                school_name,
+                total_usage_hours,
+                active_students,
+                active_teachers,
+                risk_flag
+            FROM mart.mart_device_infrastructure
+            ORDER BY total_usage_hours DESC
+        """)
+    )
+
+    rows = result.mappings().all()
+
+    return {"data": rows}
+
 
 
 

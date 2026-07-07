@@ -1,0 +1,32 @@
+[0m12:34:55.645324 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10ccc54f0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10d803620>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10d5bae70>]}
+
+
+============================== 12:34:55.659231 | 9b3d4be9-a1df-45bb-8e14-d0183ab7038d ==============================
+[0m12:34:55.659231 [info ] [MainThread]: Running with dbt=1.11.11
+[0m12:34:55.660159 [debug] [MainThread]: running dbt with arguments {'quiet': 'False', 'target_path': 'None', 'profiles_dir': '/Users/rkalemera/.dbt', 'static_parser': 'True', 'log_path': 'logs', 'cache_selected_only': 'False', 'log_cache_events': 'False', 'warn_error': 'None', 'fail_fast': 'False', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'printer_width': '80', 'debug': 'False', 'use_experimental_parser': 'False', 'introspect': 'True', 'no_print': 'None', 'partial_parse': 'True', 'invocation_command': 'dbt build --select core_platform_availability core_device_utilization mart_device_infrastructure', 'write_json': 'True', 'indirect_selection': 'eager', 'send_anonymous_usage_stats': 'True', 'empty': 'False', 'log_format': 'default', 'use_colors': 'True', 'version_check': 'True'}
+[0m12:34:55.660969 [error] [MainThread]: Encountered an error:
+Runtime Error
+  No dbt_project.yml found at expected path /Users/rkalemera/Desktop/Digital-Learning-Analytics-Project/dbt_project.yml
+  Verify that each entry within packages.yml (and their transitive dependencies) contains a file named dbt_project.yml
+  
+[0m12:34:56.003175 [debug] [MainThread]: Resource report: {"command_name": "build", "command_success": false, "command_wall_clock_time": 0.46818584, "process_in_blocks": "0", "process_kernel_time": 0.559182, "process_mem_max_rss": "101945344", "process_out_blocks": "0", "process_user_time": 2.241326}
+[0m12:34:56.004176 [debug] [MainThread]: Command `dbt build` failed at 12:34:56.003988 after 0.47 seconds
+[0m12:34:56.004858 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10d756b70>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10cd7fa70>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x10d7b0aa0>]}
+[0m12:34:56.005407 [debug] [MainThread]: Flushing usage events
+[0m12:34:57.159844 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m12:37:25.942134 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x110743a70>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x113190800>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x113190470>]}
+
+
+============================== 12:37:25.950148 | eaa2f0ec-8693-4595-b3f0-2933f24313b9 ==============================
+[0m12:37:25.950148 [info ] [MainThread]: Running with dbt=1.11.11
+[0m12:37:25.950984 [debug] [MainThread]: running dbt with arguments {'write_json': 'True', 'partial_parse': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'quiet': 'False', 'printer_width': '80', 'no_print': 'None', 'invocation_command': 'dbt build --select core_platform_availability core_device_utilization mart_device_infrastructure', 'profiles_dir': '/Users/rkalemera/.dbt', 'use_colors': 'True', 'indirect_selection': 'eager', 'log_cache_events': 'False', 'target_path': 'None', 'warn_error': 'None', 'fail_fast': 'False', 'introspect': 'True', 'send_anonymous_usage_stats': 'True', 'log_path': 'logs', 'cache_selected_only': 'False', 'version_check': 'True', 'use_experimental_parser': 'False', 'debug': 'False', 'empty': 'False', 'static_parser': 'True', 'log_format': 'default'}
+[0m12:37:25.951786 [error] [MainThread]: Encountered an error:
+Runtime Error
+  No dbt_project.yml found at expected path /Users/rkalemera/Desktop/Digital-Learning-Analytics-Project/dbt_project.yml
+  Verify that each entry within packages.yml (and their transitive dependencies) contains a file named dbt_project.yml
+  
+[0m12:37:25.957287 [debug] [MainThread]: Resource report: {"command_name": "build", "command_success": false, "command_wall_clock_time": 0.12066945, "process_in_blocks": "0", "process_kernel_time": 0.512603, "process_mem_max_rss": "102612992", "process_out_blocks": "0", "process_user_time": 2.273756}
+[0m12:37:25.958433 [debug] [MainThread]: Command `dbt build` failed at 12:37:25.958003 after 0.12 seconds
+[0m12:37:25.959144 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x1131047d0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x113190620>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x113191b50>]}
+[0m12:37:25.959707 [debug] [MainThread]: Flushing usage events
+[0m12:37:27.345184 [debug] [MainThread]: An error was encountered while trying to flush usage events

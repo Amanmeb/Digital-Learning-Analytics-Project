@@ -6,7 +6,12 @@ from app.auth.rbac import require_roles
 from app.auth.roles import Roles
 from app.database import get_db
 from app.schemas.dashboard import DashboardSummaryResponse
-from app.services.dashboard import get_dashboard_summary
+from app.services.dashboard import (
+    get_dashboard_summary,
+    get_school_dashboard,
+    get_platform_dashboard,
+    get_device_dashboard,
+)
 
 router = APIRouter(
     prefix="/dashboard",
@@ -38,5 +43,24 @@ async def dashboard_summary(
     return await get_dashboard_summary(db, user) 
     # return await get_dashboard_summary(db, user["role"])
 
+@router.get("/school")
+async def school_dashboard(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    return await get_school_dashboard(db, user)
 
+@router.get("/platform")
+async def platform_dashboard(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    return await get_platform_dashboard(db, user)
+
+@router.get("/device")
+async def device_dashboard(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    return await get_device_dashboard(db, user)
 
