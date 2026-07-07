@@ -4,8 +4,6 @@ from app.auth.router import router as auth_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.ingest import router as ingest_router
 
-
-
 app = FastAPI(
     title="CDLAID Ingestion API",
     version="0.1.0",

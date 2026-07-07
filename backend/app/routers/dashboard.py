@@ -8,9 +8,9 @@ from app.database import get_db
 from app.schemas.dashboard import DashboardSummaryResponse
 from app.services.dashboard import (
     get_dashboard_summary,
-    get_school_dashboard,
-    get_platform_dashboard,
     get_device_dashboard,
+    get_platform_dashboard,
+    get_school_dashboard,
 )
 
 router = APIRouter(

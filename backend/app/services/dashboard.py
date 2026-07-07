@@ -1,5 +1,4 @@
 from sqlalchemy import text
-# from unittest import result
 
 
 async def get_dashboard_summary(db, user):
