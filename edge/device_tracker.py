@@ -103,6 +103,13 @@ def build_statement(student_id, verb_slug, object_id, object_name,
 def get_active_window_windows():
     # Returns (window_title, process_name) of the foreground window on Windows
     # Returns ("", "") if detection fails
+    # Uses PowerShell Get-Process instead of wmic, since wmic has been
+    # removed from recent Windows 11 builds -- discovered via live
+    # device testing, where wmic silently failed and returned no data.
+    # timeout is 8s (not 3s) because spawning a fresh PowerShell process
+    # has real startup overhead that can exceed 3 seconds -- also found
+    # via live testing, where a 3s timeout caused every single call to
+    # silently fail with TimeoutExpired.
     try:
         import ctypes
         import ctypes.wintypes
@@ -118,15 +125,11 @@ def get_active_window_windows():
 
         import subprocess
         result = subprocess.run(
-            ["wmic", "process", "where", "ProcessId=" + str(pid.value),
-             "get", "Name", "/value"],
-            capture_output=True, text=True, timeout=3,
+            ["powershell", "-NoProfile", "-Command",
+             "(Get-Process -Id " + str(pid.value) + ").ProcessName"],
+            capture_output=True, text=True, timeout=8,
         )
-        process_name = ""
-        for line in result.stdout.splitlines():
-            if line.startswith("Name="):
-                process_name = line.split("=", 1)[1].strip()
-                break
+        process_name = result.stdout.strip()
         return title, process_name
     except Exception:
         return "", ""
