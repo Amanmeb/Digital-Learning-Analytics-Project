@@ -1,6 +1,8 @@
 #!/bin/bash
 # CDLAID School Server Installation Script
-# Installs and configures a new school server
+# Installs and configures a new school server for direct device tracking
+# Moodle has been fully removed from this project -- login_app (port
+# 3000) is the student-facing entry point, replacing it entirely
 # Expected completion time: 20-25 minutes
 # Run as: bash scripts/install_school.sh
 
@@ -12,7 +14,7 @@ echo "==================================="
 echo ""
 
 # ------------------------------------------------------------
-# Phase 1 -- Collect configuration (5 questions)
+# Phase 1 -- Collect configuration
 # ------------------------------------------------------------
 echo "Phase 1 -- Configuration"
 echo ""
@@ -21,7 +23,7 @@ read -p "School name: " SCHOOL_NAME
 read -p "School ID (format ET-AA-001): " SCHOOL_ID
 read -p "Central server URL (e.g. http://192.168.1.100:8000): " CENTRAL_URL
 read -p "API key: " API_KEY
-read -p "Moodle admin password: " MOODLE_ADMIN_PASSWORD
+read -p "Admin API key for login_app (used for student registration endpoints): " ADMIN_API_KEY
 
 SERVER_ID="SRV-${SCHOOL_ID}-001"
 DEVICE_ID="DEV-${SCHOOL_ID}-000001"
@@ -41,8 +43,8 @@ echo "Phase 2 -- System setup"
 
 # Check Ubuntu version
 OS_VERSION=$(lsb_release -rs)
-if [ "${OS_VERSION}" != "22.04" ]; then
-    echo "WARNING: Expected Ubuntu 22.04 -- found ${OS_VERSION}"
+if [ "${OS_VERSION}" != "22.04" ] && [ "${OS_VERSION}" != "24.04" ]; then
+    echo "WARNING: Expected Ubuntu 22.04 or 24.04 -- found ${OS_VERSION}"
 fi
 
 # Install Docker if not present
@@ -75,7 +77,7 @@ SERVER_ID=${SERVER_ID}
 DEVICE_ID=${DEVICE_ID}
 CENTRAL_API_URL=${CENTRAL_URL}
 API_SECRET_KEY=${API_KEY}
-MOODLE_ADMIN_PASSWORD=${MOODLE_ADMIN_PASSWORD}
+ADMIN_API_KEY=${ADMIN_API_KEY}
 QUEUE_DB_PATH=/opt/cdlaid/edge/queue.db
 XAPI_HOMEPAGE_URL=${CENTRAL_URL}
 EOF
@@ -83,66 +85,62 @@ EOF
 echo "Environment file created"
 
 # ------------------------------------------------------------
-# Phase 3 -- Start Moodle and MySQL
+# Phase 3 -- Start school stack (postgres, superset, device
+# receiver, login_app)
 # ------------------------------------------------------------
-echo "Phase 3 -- Starting Moodle"
+echo "Phase 3 -- Starting school stack"
 
 cd "${REPO_DIR}"
 docker compose -f docker-compose.school.yml up -d
 
-echo "Waiting for Moodle to start (this takes 2-3 minutes)"
-sleep 120
-
-# ------------------------------------------------------------
-# Phase 4 -- Content import
-# ------------------------------------------------------------
-echo "Phase 4 -- Content import"
-
-BACKUP_DIR="/home/ubuntu/cdlaid-backups"
-mkdir -p "${BACKUP_DIR}"
-
-# Try central server first
-if curl -f -o "${BACKUP_DIR}/master_cdlaid_moodle.mbz" \
-    "${CENTRAL_URL}/content/master_cdlaid_moodle.mbz" 2>/dev/null; then
-    echo "Master backup downloaded from central server"
-else
-    echo "Central server not available -- checking USB"
-    USB_PATH="/media/ubuntu/CDLAID/master_cdlaid_moodle.mbz"
-    if [ -f "${USB_PATH}" ]; then
-        cp "${USB_PATH}" "${BACKUP_DIR}/master_cdlaid_moodle.mbz"
-        echo "Master backup copied from USB"
-    else
-        echo "No backup available -- skipping content import"
+echo "Waiting for school postgres to become healthy"
+for i in $(seq 1 30); do
+    if docker exec cdlaid_school_postgres pg_isready -U cdlaid_user > /dev/null 2>&1; then
+        echo "School postgres is ready"
+        break
     fi
-fi
+    sleep 5
+done
 
 # ------------------------------------------------------------
-# Phase 5 -- Configure xAPI plugin
+# Phase 4 -- Apply database schema migrations
+# Runs every migration file in sql/migrations in order. Every
+# migration in this project is written to be safe to re-run
+# (IF NOT EXISTS / ON CONFLICT DO NOTHING), so this is safe on
+# both a brand new database and one being updated.
 # ------------------------------------------------------------
-echo "Phase 5 -- Configuring xAPI plugin"
+echo "Phase 4 -- Applying database schema"
 
-docker exec -u www-data cdlaid_moodle php \
-    /var/www/html/admin/cli/cfg.php \
-    --component=logstore_xapi \
-    --name=endpoint \
-    --set="${CENTRAL_URL}/xapi/statements"
+for migration_file in "${REPO_DIR}"/sql/migrations/*.sql; do
+    echo "  Applying $(basename "${migration_file}")"
+    docker exec -i -e PGPASSWORD="${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}" \
+        cdlaid_school_postgres psql -U cdlaid_user -d cdlaid_school \
+        < "${migration_file}" \
+        || echo "    WARNING: migration $(basename "${migration_file}") reported an error -- review manually"
+done
 
-docker exec -u www-data cdlaid_moodle php \
-    /var/www/html/admin/cli/cfg.php \
-    --component=logstore_xapi \
-    --name=username \
-    --set="${API_KEY}"
+echo "Schema migrations applied"
 
-# Register school with central server
-echo "Registering school with central server"
+# ------------------------------------------------------------
+# Phase 5 -- Register school with central server
+# ------------------------------------------------------------
+echo "Phase 5 -- Registering school with central server"
+
 curl -s -X POST "${CENTRAL_URL}/api/v1/admin/schools" \
     -H "Content-Type: application/json" \
     -H "X-API-Key: ${API_KEY}" \
-    -d "{\"school_id\":\"${SCHOOL_ID}\",\"school_name\":\"${SCHOOL_NAME}\",\"region_id\":\"ET-AA\"}" \
+    -d "{\"school_id\":\"${SCHOOL_ID}\",\"school_name\":\"${SCHOOL_NAME}\"}" \
     || echo "School registration will retry on first sync"
 
+echo ""
+echo "Note: this school has no zone/woreda assignment yet. Assign one"
+echo "later via the geo admin endpoints in login_app once real"
+echo "administrative data is available:"
+echo "  GET  ${CENTRAL_URL}/admin/geo/zones"
+echo "  POST /admin/schools/${SCHOOL_ID}/woreda"
+
 # ------------------------------------------------------------
-# Phase 6 -- Install sync agent as systemd service
+# Phase 6 -- Install sync agent and monitor as systemd services
 # ------------------------------------------------------------
 echo "Phase 6 -- Installing sync agent"
 
@@ -195,21 +193,14 @@ systemctl start cdlaid-sync-monitor
 echo ""
 echo "Phase 7 -- Verification"
 
-echo "Moodle status:"
-curl -s -o /dev/null -w "  HTTP %{http_code}\n" http://localhost:3000
+echo "Login app status:"
+curl -s -o /dev/null -w "  HTTP %{http_code}\n" http://localhost:3000/login
+
+echo "Device receiver status:"
+curl -s -o /dev/null -w "  HTTP %{http_code}\n" http://localhost:8001/api/v1/device/ingest -X POST -H "Content-Type: application/json" -d "[]"
 
 echo "Sync monitor status:"
 curl -s http://localhost:8090/status | python3 -m json.tool || echo "  Not yet ready"
-
-echo ""
-echo "Installation complete"
-echo "====================="
-echo "  School:       ${SCHOOL_NAME}"
-echo "  School ID:    ${SCHOOL_ID}"
-echo "  Moodle:       http://localhost:3000"
-echo "  Sync monitor: http://localhost:8090/status"
-echo ""
-echo "Total time: approximately 25 minutes"
 
 # ------------------------------------------------------------
 # Phase 8 -- Network Connection Setup
@@ -221,6 +212,7 @@ echo "Total time: approximately 25 minutes"
 #   Option 3 -- Both hotspot and LAN simultaneously
 # Connection method and LAN IP stored in .env.school for later changes
 # ------------------------------------------------------------
+echo ""
 echo "Phase 8 -- Network Connection Setup"
 echo ""
 echo "Choose connection method:"
@@ -328,7 +320,7 @@ if [ "${CONNECTION_CHOICE}" = "2" ] || [ "${CONNECTION_CHOICE}" = "3" ]; then
     if [ -n "${LAN_IP}" ]; then
         echo "LAN configuration:"
         echo "  LAN IP: ${LAN_IP}"
-        echo "  Students access Moodle at http://${LAN_IP}:3000"
+        echo "  Students access login app at http://${LAN_IP}:3000"
         echo "  Sync monitor at http://${LAN_IP}:8090"
         echo "  Install page at http://${LAN_IP}:8090/install"
         LAN_CONFIGURED=true
@@ -337,30 +329,23 @@ if [ "${CONNECTION_CHOICE}" = "2" ] || [ "${CONNECTION_CHOICE}" = "3" ]; then
 fi
 
 # ------------------------------------------------------------
-# Set Moodle wwwroot based on connection method
+# Determine login app URL based on connection method
 # Priority: hotspot IP if hotspot is configured, otherwise LAN IP
 # ------------------------------------------------------------
 if [ "${HOTSPOT_CONFIGURED}" = "true" ]; then
-    MOODLE_URL="http://10.42.0.1:3000"
+    LOGIN_APP_URL="http://10.42.0.1:3000"
 elif [ "${LAN_CONFIGURED}" = "true" ] && [ -n "${LAN_IP}" ]; then
-    MOODLE_URL="http://${LAN_IP}:3000"
+    LOGIN_APP_URL="http://${LAN_IP}:3000"
 else
-    MOODLE_URL="http://localhost:3000"
+    LOGIN_APP_URL="http://localhost:3000"
 fi
 
-echo "MOODLE_URL=${MOODLE_URL}" >> "${REPO_DIR}/.env.school"
-
-docker exec -u www-data cdlaid_moodle php \
-    /var/www/html/admin/cli/cfg.php \
-    --name=wwwroot \
-    --set="${MOODLE_URL}" \
-    && echo "Moodle wwwroot updated to ${MOODLE_URL}" \
-    || echo "Could not update Moodle wwwroot -- update manually"
+echo "LOGIN_APP_URL=${LOGIN_APP_URL}" >> "${REPO_DIR}/.env.school"
 
 # Print QR code hint
 if [ "${HOTSPOT_CONFIGURED}" = "true" ] || [ "${LAN_CONFIGURED}" = "true" ]; then
     echo ""
-    echo "Tip: Generate a QR code for ${MOODLE_URL}"
+    echo "Tip: Generate a QR code for ${LOGIN_APP_URL}/login"
     echo "     and post it in every classroom"
     echo "     Or visit http://10.42.0.1:8090/install for device setup"
 fi
@@ -375,7 +360,7 @@ echo "==================================="
 echo "  School:            ${SCHOOL_NAME}"
 echo "  School ID:         ${SCHOOL_ID}"
 echo "  Connection method: ${CONNECTION_METHOD}"
-echo "  Moodle URL:        ${MOODLE_URL}"
+echo "  Login app URL:     ${LOGIN_APP_URL}/login"
 if [ -n "${LAN_IP}" ]; then
     echo "  LAN IP:            ${LAN_IP}"
 fi
@@ -383,6 +368,10 @@ echo "  Sync monitor:      http://10.42.0.1:8090/status"
 echo "  Data export:       http://10.42.0.1:8090/export"
 echo "  Device install:    http://10.42.0.1:8090/install"
 echo "==================================="
+echo ""
+echo "Zone/woreda assignment for this school is not yet set -- assign"
+echo "one via the geo admin endpoints once real administrative data"
+echo "is available (see Phase 5 above)."
 echo ""
 echo "To change connection method later:"
 echo "  Edit /opt/cdlaid/.env.school"
