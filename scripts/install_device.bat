@@ -69,24 +69,28 @@ echo Packages installed
 
 REM ------------------------------------------------------------
 REM Create installation directory
+REM device_agent.py and device_tracker.py must live together under
+REM an edge/ package directory, because device_agent.py imports
+REM device_tracker.py as "from edge.device_tracker import start_tracker"
 REM ------------------------------------------------------------
 
 echo.
 echo Creating installation directory
 
 if not exist "C:\cdlaid" mkdir "C:\cdlaid"
+if not exist "C:\cdlaid\edge" mkdir "C:\cdlaid\edge"
 if not exist "C:\cdlaid\logs" mkdir "C:\cdlaid\logs"
 
 echo Directory created: C:\cdlaid
 
 REM ------------------------------------------------------------
-REM Copy device agent to installation directory
+REM Copy device agent and device tracker to installation directory
 REM ------------------------------------------------------------
 
 echo.
-echo Copying device agent
+echo Copying device agent and device tracker
 
-copy /Y "edge\device_agent.py" "C:\cdlaid\device_agent.py" >nul
+copy /Y "edge\device_agent.py" "C:\cdlaid\edge\device_agent.py" >nul
 if %errorlevel% neq 0 (
     echo ERROR: Could not copy device_agent.py
     echo Make sure you are running this from the project root directory
@@ -94,7 +98,18 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo Device agent copied to C:\cdlaid\device_agent.py
+copy /Y "edge\device_tracker.py" "C:\cdlaid\edge\device_tracker.py" >nul
+if %errorlevel% neq 0 (
+    echo ERROR: Could not copy device_tracker.py
+    echo Make sure you are running this from the project root directory
+    pause
+    exit /b 1
+)
+
+type nul > "C:\cdlaid\edge\__init__.py"
+
+echo Device agent copied to C:\cdlaid\edge\device_agent.py
+echo Device tracker copied to C:\cdlaid\edge\device_tracker.py
 
 REM ------------------------------------------------------------
 REM Write environment configuration file
@@ -119,6 +134,8 @@ echo Configuration written to C:\cdlaid\device_agent.env
 
 REM ------------------------------------------------------------
 REM Write wrapper script that loads env and runs agent
+REM Runs as a module (-m edge.device_agent) from C:\cdlaid so the
+REM "from edge.device_tracker import start_tracker" import resolves
 REM ------------------------------------------------------------
 
 echo.
@@ -128,8 +145,9 @@ echo Writing launcher script
 echo @echo off
 echo REM CDLAID Device Agent Launcher
 echo REM Loads environment variables and starts agent
+echo cd /d C:\cdlaid
 echo for /f "tokens=1,2 delims==" %%%%a in ^(C:\cdlaid\device_agent.env^) do set %%%%a=%%%%b
-echo python C:\cdlaid\device_agent.py ^>^> C:\cdlaid\logs\device_agent.log 2^>^&1
+echo python -m edge.device_agent ^>^> C:\cdlaid\logs\device_agent.log 2^>^&1
 ) > "C:\cdlaid\run_agent.bat"
 
 echo Launcher written to C:\cdlaid\run_agent.bat
@@ -182,10 +200,22 @@ REM ------------------------------------------------------------
 echo.
 echo Verifying installation
 
-if exist "C:\cdlaid\device_agent.py" (
+if exist "C:\cdlaid\edge\device_agent.py" (
     echo   device_agent.py    OK
 ) else (
     echo   device_agent.py    MISSING
+)
+
+if exist "C:\cdlaid\edge\device_tracker.py" (
+    echo   device_tracker.py  OK
+) else (
+    echo   device_tracker.py  MISSING
+)
+
+if exist "C:\cdlaid\edge\__init__.py" (
+    echo   edge\__init__.py   OK
+) else (
+    echo   edge\__init__.py   MISSING
 )
 
 if exist "C:\cdlaid\device_agent.env" (
