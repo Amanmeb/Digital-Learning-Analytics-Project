@@ -140,16 +140,18 @@ async def get_device_dashboard(db, user):
     result = await db.execute(
         text("""
             SELECT
-                device_id,
-                device_name,
                 school_id,
-                school_name,
-                total_usage_hours,
-                active_students,
-                active_teachers,
-                risk_flag
+                date_key,
+                total_syncs,
+                successful_syncs,
+                sync_health_pct,
+                active_devices,
+                avg_usage_minutes,
+                total_sessions,
+                total_usage_minutes,
+                refreshed_at
             FROM mart.mart_device_infrastructure
-            ORDER BY total_usage_hours DESC
+            ORDER BY total_usage_minutes DESC
         """)
     )
 
