@@ -2,6 +2,7 @@
 # Replaces install_school.sh -- no Moodle, login_app instead
 # Runs identically on Windows (dev/test) and Ubuntu (real deployment)
 # Run as: python install_school.py
+
 import os
 import platform
 import subprocess
@@ -82,13 +83,10 @@ def collect_school_identity(central_host, central_port, central_password):
     # Collects country/region/woreda and school identity
     # Tries the central picker first, falls back to manual entry
     print_header("Phase 1 -- School Identity")
-
     geo_nodes = fetch_geo_picker(central_host, central_port, central_password)
-
     country_code = "ET"
     region_name = ""
     woreda_name = ""
-
     if geo_nodes:
         print("Connected to central server -- showing available regions")
         regions = [n for n in geo_nodes if n["level_number"] == 2]
@@ -109,10 +107,8 @@ def collect_school_identity(central_host, central_port, central_password):
         country_code = ask("Country code", "ET")
         region_name = ask("Region name")
         woreda_name = ask("Woreda or district name")
-
     school_name = ask("School name")
     school_id = ask("School ID (format COUNTRY-REGIONCODE-NUMBER, e.g. ET-AA-001)")
-
     return {
         "country_code": country_code,
         "region_name": region_name,
@@ -126,7 +122,6 @@ def collect_connection_method():
     # Collects hotspot/LAN/both connection method, matching the
     # original install_school.sh logic
     print_header("Phase 2 -- Connection Method")
-
     choice = ask_choice(
         "Choose connection method:",
         [
@@ -135,21 +130,18 @@ def collect_connection_method():
             "Both hotspot and LAN simultaneously",
         ],
     )
-
     if choice.startswith("Hotspot"):
         connection_method = "hotspot"
     elif choice.startswith("LAN"):
         connection_method = "lan"
     else:
         connection_method = "both"
-
     lan_ip = ""
     if connection_method in ("lan", "both"):
         lan_ip = ask("Enter LAN IP address for this server (e.g. 192.168.1.100)")
         if not lan_ip and connection_method == "lan":
             print("No LAN IP entered -- falling back to hotspot only")
             connection_method = "hotspot"
-
     return {"connection_method": connection_method, "lan_ip": lan_ip}
 
 
@@ -259,7 +251,6 @@ def write_env_file(config):
 
     with open(".env.school", "w") as env_file:
         env_file.write("\n".join(lines) + "\n")
-
     print("Environment file .env.school written")
 
 
@@ -275,6 +266,40 @@ def run_docker_compose_up():
     print("Waiting for services to become healthy")
     import time
     time.sleep(30)
+
+
+def apply_schema_migrations(config):
+    # Applies every SQL migration file to the school database, in
+    # order. Every migration in this project is written to be safe
+    # to re-run (IF NOT EXISTS / ON CONFLICT DO NOTHING), so this is
+    # safe on both a brand new database and one being updated.
+    # Must run before dbt seed/run, since dbt depends on the schema
+    # and base tables these migrations create -- without this step,
+    # a fresh install fails at dbt seed with "relation does not exist"
+    print_header("Phase 10a -- Applying Database Schema")
+    import glob
+    migration_files = sorted(glob.glob("sql/migrations/*.sql"))
+    if not migration_files:
+        print("WARNING: no migration files found in sql/migrations/")
+        return
+    for migration_file in migration_files:
+        print("  Applying " + migration_file)
+        with open(migration_file, "r") as sql_file:
+            sql_content = sql_file.read()
+        env = os.environ.copy()
+        env["PGPASSWORD"] = config["db_password"]
+        result = subprocess.run(
+            ["docker", "exec", "-i", "cdlaid_school_postgres",
+             "psql", "-U", "cdlaid_user", "-d", "cdlaid_school"],
+            input=sql_content,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        if result.returncode != 0:
+            print("    WARNING: " + migration_file + " reported an error:")
+            print("    " + result.stderr.strip())
+    print("Schema migrations applied")
 
 
 def run_dbt_seed_and_run():
@@ -299,17 +324,14 @@ def setup_hotspot_linux(school_id, connection_method):
         return False
     if connection_method not in ("hotspot", "both"):
         return False
-
     print_header("Hotspot Setup")
     check_nmcli = subprocess.run(["which", "nmcli"], capture_output=True)
     if check_nmcli.returncode != 0:
         print("nmcli not found -- skipping hotspot setup")
         print("Install with: sudo apt-get install network-manager")
         return False
-
     hotspot_name = "Camara-" + school_id
     hotspot_password = "camara" + school_id.replace("-", "")
-
     device_check = subprocess.run(
         ["nmcli", "device", "status"], capture_output=True, text=True
     )
@@ -318,11 +340,9 @@ def setup_hotspot_linux(school_id, connection_method):
         if "wifi" in line:
             wifi_adapter = line.split()[0]
             break
-
     if not wifi_adapter:
         print("No WiFi adapter found -- skipping hotspot setup")
         return False
-
     subprocess.run(["nmcli", "connection", "delete", hotspot_name], capture_output=True)
     subprocess.run([
         "nmcli", "connection", "add", "type", "wifi", "ifname", wifi_adapter,
@@ -332,7 +352,6 @@ def setup_hotspot_linux(school_id, connection_method):
         "ipv4.addresses", "10.42.0.1/24",
     ], check=True)
     subprocess.run(["nmcli", "connection", "up", hotspot_name], check=True)
-
     print("Hotspot configured:")
     print("  Network name: " + hotspot_name)
     print("  Password:     " + hotspot_password)
@@ -346,7 +365,6 @@ def setup_systemd_services_linux():
     if not is_linux():
         print("Systemd service setup skipped -- not running on Linux")
         return
-
     print_header("Systemd Services")
     sync_agent_unit = (
         "[Unit]\n"
@@ -379,12 +397,10 @@ def setup_systemd_services_linux():
         "[Install]\n"
         "WantedBy=multi-user.target\n"
     )
-
     with open("/etc/systemd/system/cdlaid-sync-agent.service", "w") as service_file:
         service_file.write(sync_agent_unit)
     with open("/etc/systemd/system/cdlaid-sync-monitor.service", "w") as service_file:
         service_file.write(sync_monitor_unit)
-
     subprocess.run(["systemctl", "daemon-reload"], check=True)
     subprocess.run(["systemctl", "enable", "cdlaid-sync-agent"], check=True)
     subprocess.run(["systemctl", "enable", "cdlaid-sync-monitor"], check=True)
@@ -402,7 +418,6 @@ def print_final_summary(config, hotspot_configured):
         login_url = "http://" + config["lan_ip"] + ":" + config["login_port"]
     else:
         login_url = "http://localhost:" + config["login_port"]
-
     print("  School:            " + config["school_name"])
     print("  School ID:         " + config["school_id"])
     print("  Connection method: " + config["connection_method"])
@@ -417,11 +432,9 @@ def main():
     # Runs the full school server installation flow
     print_header("CDLAID School Server Installer")
     print("Replaces install_school.sh -- no Moodle, login_app instead")
-
     central_host = ask("Central server host or IP", "localhost")
     central_port = ask("Central server PostgreSQL port", "5432")
     central_password = ask("Central server database password")
-
     config = {}
     config.update(collect_school_identity(central_host, central_port, central_password))
     config.update(collect_connection_method())
@@ -430,20 +443,17 @@ def main():
     config.update(collect_images())
     config.update(collect_secrets())
     config.update(collect_ports())
-
     if not print_summary(config):
         print("Installation cancelled")
         sys.exit(0)
-
     write_env_file(config)
     run_docker_compose_up()
+    apply_schema_migrations(config)
     run_dbt_seed_and_run()
-
     hotspot_configured = setup_hotspot_linux(
         config["school_id"], config["connection_method"]
     )
     setup_systemd_services_linux()
-
     print_final_summary(config, hotspot_configured)
 
 
