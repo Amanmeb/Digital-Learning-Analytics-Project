@@ -39,24 +39,32 @@ def collect_country_scope():
 
 def collect_geo_level_names(country_codes):
     # Collects level naming for each country's geo hierarchy
+    # Ethiopia's real structure is 4 levels below the top: Country,
+    # Region, Zone, Woreda -- chartered cities like Addis Ababa use
+    # sub-cities in place of a zone. This was previously modeled as
+    # only 3 levels (mislabeling zone data as woreda), fixed in
+    # migration 013 -- kept consistent here.
     print_header("Phase 2 -- Geo Level Names")
     level_configs = []
     for country_code in country_codes:
         print("Country: " + country_code)
         if country_code == "ET":
-            print("Default Ethiopian levels: 1=Country, 2=Region, 3=Woreda")
+            print("Default Ethiopian levels: 1=Country, 2=Region, 3=Zone, 4=Woreda")
             use_default = ask("Use these defaults? (yes/no)", "yes")
             if use_default.lower() == "yes":
                 level_configs.append((country_code, 1, "Country"))
                 level_configs.append((country_code, 2, "Region"))
-                level_configs.append((country_code, 3, "Woreda"))
+                level_configs.append((country_code, 3, "Zone"))
+                level_configs.append((country_code, 4, "Woreda"))
                 continue
         level_1 = ask("Level 1 name for " + country_code, "Country")
         level_2 = ask("Level 2 name for " + country_code, "Region")
-        level_3 = ask("Level 3 name for " + country_code, "District")
+        level_3 = ask("Level 3 name for " + country_code, "Zone")
+        level_4 = ask("Level 4 name for " + country_code, "Woreda")
         level_configs.append((country_code, 1, level_1))
         level_configs.append((country_code, 2, level_2))
         level_configs.append((country_code, 3, level_3))
+        level_configs.append((country_code, 4, level_4))
     return {"level_configs": level_configs}
 
 
@@ -221,19 +229,24 @@ def run_dbt_seed_and_run():
 
 def write_geo_level_config(level_configs):
     # Writes the collected geo level names into dim_geo_level_config
+    # Uses psql variables instead of string concatenation to avoid
+    # SQL injection from user-entered country/level names
     print_header("Phase 10 -- Geo Level Configuration")
     for country_code, level_number, level_name in level_configs:
         sql = (
             "INSERT INTO mart.dim_geo_level_config "
             "(country_code, level_number, level_name) VALUES "
-            "('" + country_code + "', " + str(level_number) + ", '" +
-            level_name + "') ON CONFLICT DO NOTHING;"
+            "(:'country_code', :level_number, :'level_name') "
+            "ON CONFLICT DO NOTHING;"
         )
         subprocess.run(
             ["docker", "exec", "-i", "-e", "PGPASSWORD=" + os.environ.get(
                 "POSTGRES_PASSWORD", "CdlaidDB2025!Strong"),
              "cdlaid_postgres", "psql", "-U", "cdlaid_user", "-d",
-             "cdlaid_analytics"],
+             "cdlaid_analytics",
+             "-v", "country_code=" + country_code,
+             "-v", "level_number=" + str(level_number),
+             "-v", "level_name=" + level_name],
             input=sql,
             capture_output=True,
             text=True,
