@@ -2,9 +2,11 @@
 # HTTP server on port 8090
 # Returns school health status for monitoring dashboard
 # Provides on-demand CSV export of queued events by date range
-# Provides self-install page for device agent, Moodle app, and PWA
+# Provides self-install page for device agent and PWA
 # Serves PWA files (manifest, service worker, sync queue, offline page)
 # Works on Windows, Linux, and Mac
+# Moodle has been fully removed from this project -- login_app is the
+# student-facing entry point
 
 import csv
 import io
@@ -21,7 +23,7 @@ from edge.queue_manager import get_queue_depth, get_last_sync, create_tables, ge
 MONITOR_PORT = int(os.environ.get("MONITOR_PORT", "8090"))
 SCHOOL_ID    = os.environ.get("SCHOOL_ID", "ET-AA-001")
 SERVER_ID    = os.environ.get("SERVER_ID", "SRV-ET-AA-001-001")
-MOODLE_URL   = os.environ.get("MOODLE_URL", "http://10.42.0.1:3000")
+LOGIN_APP_URL = os.environ.get("LOGIN_APP_URL", "http://10.42.0.1:3000")
 BACKLOG_ALERT_LOW  = int(os.environ.get("BACKLOG_ALERT_LOW", "3"))
 BACKLOG_ALERT_MID  = int(os.environ.get("BACKLOG_ALERT_MID", "7"))
 BACKLOG_ALERT_HIGH = int(os.environ.get("BACKLOG_ALERT_HIGH", "15"))
@@ -142,15 +144,11 @@ h2 {{ color: #375C7A; }}
 h3 {{ color: #81BC00; margin-top: 30px; }}
 .card {{ background: #f0f7e6; border: 1px solid #81BC00; border-radius: 8px;
          padding: 20px; margin-top: 20px; }}
-.card-blue {{ background: #eaf0f6; border: 1px solid #375C7A; border-radius: 8px;
-              padding: 20px; margin-top: 20px; }}
 .card-purple {{ background: #f3eaf0; border: 1px solid #943266; border-radius: 8px;
                 padding: 20px; margin-top: 20px; }}
 a.btn {{ display: inline-block; padding: 12px 28px; background: #81BC00; color: white;
          text-decoration: none; border-radius: 4px; font-size: 16px; margin-top: 10px; }}
 a.btn:hover {{ background: #6a9e00; }}
-a.btn-blue {{ background: #375C7A; }}
-a.btn-blue:hover {{ background: #2a4560; }}
 a.btn-purple {{ background: #943266; }}
 a.btn-purple:hover {{ background: #732650; }}
 p {{ line-height: 1.6; }}
@@ -160,7 +158,6 @@ code {{ background: #eee; padding: 2px 6px; border-radius: 3px; font-size: 14px;
            background: white; }}
 .step {{ background: #fff; border-left: 4px solid #81BC00; padding: 10px 15px;
          margin-top: 10px; }}
-.step-blue {{ border-left-color: #375C7A; }}
 .step-purple {{ border-left-color: #943266; }}
 #pwa-install-btn {{ display: none; }}
 </style>
@@ -177,28 +174,6 @@ code {{ background: #eee; padding: 2px 6px; border-radius: 3px; font-size: 14px;
    Works offline using your browser, no Play Store needed.</p>
 <button id="pwa-install-btn" onclick="installPwa()">Install Camara Learning App</button>
 <p id="pwa-status"></p>
-</div>
-
-<div class="card-blue">
-<h3>Moodle App (Android)</h3>
-<div class="step step-blue">Step 1 -- Download the Moodle app from Google Play Store</div>
-<div class="step step-blue">Step 2 -- Open the app and enter the site URL: <code>{moodle_url}</code></div>
-<div class="step step-blue">Step 3 -- Log in with your student username and password</div>
-<div class="step step-blue">Step 4 -- Download courses for offline use from the course menu</div>
-<br>
-<a class="btn btn-blue" href="https://play.google.com/store/apps/details?id=com.moodle.moodlemobile" target="_blank">
-Get Moodle App on Google Play</a>
-</div>
-
-<div class="card-blue">
-<h3>Moodle App (iPhone and iPad)</h3>
-<div class="step step-blue">Step 1 -- Download the Moodle app from the App Store</div>
-<div class="step step-blue">Step 2 -- Open the app and enter the site URL: <code>{moodle_url}</code></div>
-<div class="step step-blue">Step 3 -- Log in with your student username and password</div>
-<div class="step step-blue">Step 4 -- Download courses for offline use from the course menu</div>
-<br>
-<a class="btn btn-blue" href="https://apps.apple.com/app/moodle/id633359593" target="_blank">
-Get Moodle App on App Store</a>
 </div>
 
 <div class="card-purple">
@@ -224,13 +199,13 @@ Get Moodle App on App Store</a>
 </div>
 
 <div class="card">
-<h3>Scan to Open Moodle Directly</h3>
-<p>Scan this code with your phone camera to open the school Moodle site
-   in your browser.</p>
+<h3>Scan to Open the Login Page</h3>
+<p>Scan this code with your phone or tablet camera to open the school
+   login page directly in your browser.</p>
 <div class="qr">
-<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={moodle_url}"
-     alt="QR code for {moodle_url}">
-<p><code>{moodle_url}</code></p>
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={login_app_url}/login"
+     alt="QR code for {login_app_url}/login">
+<p><code>{login_app_url}/login</code></p>
 </div>
 </div>
 
@@ -362,14 +337,14 @@ class StatusHandler(BaseHTTPRequestHandler):
 
         elif parsed.path == "/install":
             # Self-install page showing all access options
-            # Moodle app for Android and iPhone, PWA install, QR code,
-            # Windows and Linux device agent downloads
+            # PWA install, QR code to login page, Windows and Linux
+            # device agent downloads. Moodle has been fully removed.
             hotspot_name = "Camara-" + SCHOOL_ID
             html = INSTALL_PAGE_HTML.format(
                 school_id=SCHOOL_ID,
                 server_id=SERVER_ID,
                 hotspot_name=hotspot_name,
-                moodle_url=MOODLE_URL,
+                login_app_url=LOGIN_APP_URL,
             ).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
