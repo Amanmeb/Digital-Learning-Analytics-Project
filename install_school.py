@@ -231,6 +231,13 @@ def print_summary(config):
 
 def write_env_file(config):
     # Writes .env.school with all collected configuration
+    if config["connection_method"] in ("hotspot", "both"):
+        login_app_url = "http://10.42.0.1:" + config["login_port"]
+    elif config["lan_ip"]:
+        login_app_url = "http://" + config["lan_ip"] + ":" + config["login_port"]
+    else:
+        login_app_url = "http://localhost:" + config["login_port"]
+
     lines = []
     lines.append("SCHOOL_ID=" + config["school_id"])
     lines.append("SCHOOL_NAME=" + config["school_name"])
@@ -247,6 +254,7 @@ def write_env_file(config):
     lines.append("SCHOOL_API_KEY=" + config["api_key"])
     lines.append("DEVICE_RECEIVER_KEY=" + config["device_receiver_key"])
     lines.append("ADMIN_API_KEY=" + config["admin_api_key"])
+    lines.append("LOGIN_APP_URL=" + login_app_url)
     lines.append("QUEUE_DB_PATH=/opt/cdlaid/edge/queue.db")
 
     with open(".env.school", "w") as env_file:
