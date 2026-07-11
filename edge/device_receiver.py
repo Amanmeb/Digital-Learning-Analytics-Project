@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from edge.queue_manager import create_tables, insert_event, get_queue_depth
@@ -241,7 +242,7 @@ async def device_ingest(request: Request):
     # Validate API key
     api_key = request.headers.get("X-API-Key", "")
     if SCHOOL_API_KEY and api_key != SCHOOL_API_KEY:
-        return {"error": "Invalid API key"}
+        return JSONResponse(status_code=401, content={"error": "Invalid API key"})
 
     # Parse request body
     try:
