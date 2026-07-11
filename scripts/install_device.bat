@@ -125,6 +125,7 @@ echo DEVICE_ID=%DEVICE_ID%
 echo SCHOOL_API_KEY=%SCHOOL_API_KEY%
 echo RECEIVER_URL=http://10.42.0.1:8000/api/v1/device/ingest
 echo HOTSPOT_IP=10.42.0.1
+echo HOMEPAGE_URL=http://10.42.0.1:3000
 echo SYNC_INTERVAL_SECONDS=60
 echo SYNC_BATCH_SIZE=200
 echo DEVICE_QUEUE_PATH=C:\cdlaid\device_queue.db

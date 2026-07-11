@@ -5,6 +5,7 @@
 # Emits xAPI events into the local SQLite queue via insert_event()
 # Student identity is set by the login app via a tiny localhost HTTP API
 # on port 8091 after the student logs in at the school server URL
+import os
 import platform
 import threading
 import time
@@ -12,6 +13,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 IDLE_THRESHOLD_SECONDS = 5 * 60
+HOMEPAGE_URL = os.environ.get("HOMEPAGE_URL", "http://10.42.0.1:3000")
 AUTO_LOGOUT_SECONDS = 30 * 60
 CHECK_INTERVAL_SECONDS = 5
 IDENTITY_API_PORT = 8091
@@ -74,7 +76,7 @@ def build_statement(student_id, verb_slug, object_id, object_name,
             "objectType": "Agent",
             "account": {
                 "name":     student_id,
-                "homePage": "http://10.42.0.1:3000",
+                "homePage": HOMEPAGE_URL,
             },
         },
         "verb": {
