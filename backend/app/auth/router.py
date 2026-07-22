@@ -5,8 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# from app.auth.audit_events import AuditEvents
-from backend.app.auth.audit_events import AuditEvent
+from app.auth.audit_events import AuditEvent
 from app.auth.deps import get_current_user
 from app.auth.rbac import require_roles
 from app.auth.roles import Roles
