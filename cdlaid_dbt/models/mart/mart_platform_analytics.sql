@@ -1,5 +1,6 @@
 -- Mart model for Platform Analytics dashboard
--- Pre-aggregates usage metrics per platform
+-- Pre-aggregates platform usage, availability, device utilisation,
+-- content completion, and AI usage metrics.
 
 with platform_usage as (
 
@@ -8,24 +9,13 @@ with platform_usage as (
         c.platform_id,
         d.date_key,
 
-        count(distinct c.student_id) as unique_students,
-        sum(c.session_count) as total_sessions,
+        count(distinct c.student_id)                         as unique_students,
+        sum(c.session_count)                                 as total_sessions,
+        round(avg(c.avg_session_duration_minutes)::numeric, 2) as avg_session_minutes,
+        round(sum(c.total_session_minutes)::numeric, 2)      as total_minutes,
+        count(*) filter (where c.is_offline)                 as offline_sessions
 
-        round(
-            avg(c.avg_session_duration_minutes)::numeric,
-            2
-        ) as avg_session_minutes,
-
-        round(
-            sum(c.total_session_minutes)::numeric,
-            2
-        ) as total_minutes,
-
-        count(*) filter (
-            where c.is_offline
-        ) as offline_sessions
-
-    from {{ ref('core_student_engagement') }} c
+    from {{ ref("core_student_engagement") }} c
 
     join mart.dim_date d
         on c.session_date = d.full_date
@@ -44,20 +34,16 @@ platform_content as (
         platform_id,
         date_key,
 
-        count(*) as total_content_accesses,
-        sum(completed_count) as total_completed,
+        count(*)                                             as total_content_accesses,
+        sum(completed_count)                                 as total_completed,
 
         case
             when count(*) > 0
-            then round(
-                sum(completed_count)::numeric
-                / count(*) * 100,
-                2
-            )
+                then round(sum(completed_count)::numeric / count(*) * 100, 2)
             else 0
-        end as completion_rate_pct
+        end                                                  as completion_rate_pct
 
-    from {{ ref('core_content_performance') }}
+    from {{ ref("core_content_performance") }}
 
     group by
         school_id,
@@ -73,10 +59,10 @@ platform_ai as (
         platform_id,
         date_key,
 
-        count(*) as total_ai_queries,
-        count(distinct student_id) as students_used_ai
+        count(*)                                             as total_ai_queries,
+        count(distinct student_id)                           as students_used_ai
 
-    from {{ ref('stg_ai_usage') }}
+    from {{ ref("stg_ai_usage") }}
 
     group by
         school_id,
@@ -88,6 +74,7 @@ platform_ai as (
 select
     u.school_id,
     u.platform_id,
+    u.date_key,
 
     p.platform_name,
     p.platform_type,
@@ -116,26 +103,22 @@ select
 
     case
         when u.total_sessions > 0
-        then round(
-            u.offline_sessions::numeric
-            / u.total_sessions * 100,
-            2
-        )
+            then round(u.offline_sessions::numeric / u.total_sessions * 100, 2)
         else 0
-    end as offline_pct,
+    end                                                      as offline_pct,
 
-    current_timestamp as refreshed_at
+    current_timestamp                                        as refreshed_at
 
 from platform_usage u
 
 join mart.dim_platform p
     on u.platform_id = p.platform_id
 
-left join {{ ref('core_platform_availability') }} ph
+left join {{ ref("core_platform_availability") }} ph
     on ph.school_id = u.school_id
    and ph.date_key = u.date_key
 
-left join {{ ref('core_device_utilization') }} du
+left join {{ ref("core_device_utilization") }} du
     on du.school_id = u.school_id
    and du.date_key = u.date_key
 
@@ -148,7 +131,4 @@ left join platform_ai pa
     on pa.school_id = u.school_id
    and pa.platform_id = u.platform_id
    and pa.date_key = u.date_key
-
-
-
-  
+;

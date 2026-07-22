@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camara Learning - Offline</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    max-width: 500px;
+    margin: 80px auto;
+    padding: 20px;
+    text-align: center;
+    color: #375C7A;
+}
+.icon {
+    font-size: 60px;
+    margin-bottom: 20px;
+}
+h2 {
+    color: #375C7A;
+}
+p {
+    line-height: 1.6;
+    color: #555555;
+}
+.status {
+    background: #f0f7e6;
+    border: 1px solid #81BC00;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 30px;
+}
+button {
+    margin-top: 20px;
+    padding: 12px 28px;
+    background: #81BC00;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+button:hover {
+    background: #6a9e00;
+}
+</style>
+</head>
+<body>
+<div class="icon">Camara</div>
+<h2>You are offline</h2>
+<p>Your work will sync automatically when you reconnect to the school
+   hotspot or to the internet. You can keep learning with any content
+   already downloaded to this device.</p>
+<div class="status">
+Your progress is saved on this device and nothing will be lost.
+</div>
+<button onclick="window.location.reload()">Try Again</button>
+</body>
+</html>

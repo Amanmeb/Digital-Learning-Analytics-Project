@@ -1,0 +1,19 @@
+{
+    "name": "Camara Learning",
+    "short_name": "Camara",
+    "description": "Camara Digital Learning Analytics and Impact Dashboard offline learning app",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#FFFFFF",
+    "theme_color": "#81BC00",
+    "icons": [
+        {
+            "src": "/pwa/Camara_logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

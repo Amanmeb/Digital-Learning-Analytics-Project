@@ -1,5 +1,6 @@
 -- Mart model for AI Usage and Impact dashboard
 -- Pre-aggregates AI usage metrics and control group comparison
+-- Uses updated core_ai_impact with avg_score_pct and score improvement
 
 with ai_summary as (
     select
@@ -20,14 +21,30 @@ with ai_summary as (
     group by school_id, student_id
 ),
 
-ai_impact as (
+ai_impact_summary as (
     select
         school_id,
         subject_id,
         used_ai,
         student_count,
-        avg_score
+        avg_score_pct,
+        avg_score_improvement_pct,
+        is_valid_comparison
     from {{ ref("core_ai_impact") }}
+),
+
+ai_vs_no_ai as (
+    select
+        school_id,
+        subject_id,
+        max(case when used_ai then avg_score_pct else null end)             as ai_avg_score_pct,
+        max(case when not used_ai then avg_score_pct else null end)         as no_ai_avg_score_pct,
+        max(case when used_ai then avg_score_improvement_pct else null end) as ai_score_improvement_pct,
+        max(case when used_ai then student_count else 0 end)                as ai_student_count,
+        max(case when not used_ai then student_count else 0 end)            as no_ai_student_count,
+        bool_or(is_valid_comparison)                                        as is_valid_comparison
+    from ai_impact_summary
+    group by school_id, subject_id
 )
 
 select

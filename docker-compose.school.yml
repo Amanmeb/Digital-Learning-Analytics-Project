@@ -1,38 +1,80 @@
+name: cdlaid_school
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: cdlaid_mysql
+  postgres:
+    image: postgres:16.3-alpine
+    container_name: cdlaid_school_postgres
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "5433:5432"
     environment:
-      MYSQL_ROOT_PASSWORD: MoodleRoot2025!Strong
-      MYSQL_DATABASE: moodle
-      MYSQL_USER: moodle_user
-      MYSQL_PASSWORD: MoodleDB2025!Strong
+      POSTGRES_USER: cdlaid_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}
+      POSTGRES_DB: cdlaid_school
     volumes:
-      - cdlaid_mysql_data:/var/lib/mysql
+      - cdlaid_school_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U cdlaid_user -d cdlaid_school"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  moodle:
-    build:
-      context: ./moodle
-      dockerfile: Dockerfile
-    container_name: cdlaid_moodle
+  superset:
+    image: apache/superset:3.1.3
+    container_name: cdlaid_school_superset
     restart: unless-stopped
     ports:
-      - "3000:80"
-    volumes:
-      - cdlaid_moodle_data:/var/www/moodledata
-      - ./moodle/config.php:/var/www/html/config.php
+      - "8089:8088"
+    environment:
+      SUPERSET_SECRET_KEY: cdlaid_school_superset_secret_key_2025_strong
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-CdlaidAdmin2025!}
+      SUPERSET_ADMIN_EMAIL: admin@camara.school
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
-
+    volumes:
+      - cdlaid_school_superset_home:/app/superset_home
+      - ./superset/superset_school_config.py:/app/pythonpath/superset_config.py
+    command: ["/bin/bash", "-c", "superset db upgrade && superset fab create-admin --username admin --firstname Camara --lastname School --email $$SUPERSET_ADMIN_EMAIL --password $$SUPERSET_ADMIN_PASSWORD || true && superset init && superset run -p 8088 --host 0.0.0.0 --with-threads"]
+  device_receiver:
+    build:
+      context: .
+      dockerfile: edge/Dockerfile.device_receiver
+    container_name: cdlaid_school_device_receiver
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      SCHOOL_ID: ${SCHOOL_ID:-ET-AA-001}
+      SERVER_ID: ${SERVER_ID:-SRV-ET-AA-001-001}
+      SCHOOL_API_KEY: ${SCHOOL_API_KEY:-}
+      QUEUE_DB_PATH: /app/queue_data/queue.db
+      DBT_PROJECT_DIR: /app/cdlaid_dbt
+      DBT_PROFILES_DIR: /app/cdlaid_dbt
+    volumes:
+      - cdlaid_school_queue:/app/queue_data
+      - ./cdlaid_dbt:/app/cdlaid_dbt
+  login_app:
+    build:
+      context: .
+      dockerfile: login_app/Dockerfile
+    container_name: cdlaid_login
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://cdlaid_user:${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}@postgres:5432/cdlaid_school
+      SCHOOL_ID: ${SCHOOL_ID:-ET-AA-001}
+      SERVER_ID: ${SERVER_ID:-SRV-ET-AA-001-001}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-cdlaid_admin_dev_key_2026}
+    depends_on:
+      postgres:
+        condition: service_healthy
 volumes:
-  cdlaid_mysql_data:
-  cdlaid_moodle_data:
+  cdlaid_school_pg_data:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_school_pg_data
+  cdlaid_school_superset_home:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_school_superset_home
+  cdlaid_school_queue:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_school_queue

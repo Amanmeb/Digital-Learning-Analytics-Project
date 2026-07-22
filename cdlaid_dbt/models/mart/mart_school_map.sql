@@ -1,6 +1,9 @@
 -- Mart model for school geographic map
 -- One row per school with location and KPI data
 -- Used by the school map chart on Executive Overview and School Performance dashboards
+-- region_id/dim_region replaced with a walk through dim_geo_node --
+-- dim_school.geo_id points to the zone level, so this walks up one
+-- level via parent_geo_id to reach the equivalent region
 
 with school_performance as (
     select
@@ -56,7 +59,7 @@ select
     ds.school_type,
     ds.city,
     ds.zone,
-    r.region_name,
+    rg.node_name                                        as region_name,
     ds.latitude,
     ds.longitude,
     ds.total_students                                   as registered_students,
@@ -82,6 +85,7 @@ select
     end                                                 as performance_tier,
     current_timestamp                                   as refreshed_at
 from mart.dim_school ds
-left join mart.dim_region r on ds.region_id = r.region_id
+left join mart.dim_geo_node zg on ds.geo_id = zg.geo_id
+left join mart.dim_geo_node rg on zg.parent_geo_id = rg.geo_id
 left join school_scores sc on ds.school_id = sc.school_id
 where ds.is_active = true

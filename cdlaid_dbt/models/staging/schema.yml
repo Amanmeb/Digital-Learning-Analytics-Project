@@ -46,7 +46,7 @@ models:
         data_tests:
           - not_null
   - name: mart_executive_overview
-    description: National executive overview metrics
+    description: Daily school level overview metrics for Executive dashboard
     columns:
       - name: active_students
         data_tests:
@@ -57,5 +57,35 @@ models:
           - not_null
 
       - name: active_rate_pct
+      - name: school_id
         data_tests:
           - not_null
+      - name: summary_date
+        data_tests:
+          - not_null
+
+
+# new
+# - name: mart_executive_overview
+#   description: Daily school level overview metrics for Executive dashboard
+#   columns:
+#     - name: school_id
+#       data_tests:
+#         - not_null
+
+#     - name: summary_date
+#       data_tests:
+#         - not_null
+
+#     - name: active_students
+#       data_tests:
+#         - not_null
+
+#     - name: total_registered_students
+#       data_tests:
+#         - not_null
+
+#     - name: active_rate_pct
+#       data_tests:
+#         - not_null
+

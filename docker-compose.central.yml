@@ -1,3 +1,5 @@
+name: cdlaid_central
+
 services:
   postgres:
     image: postgres:16.3-alpine
@@ -7,7 +9,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: cdlaid_user
-      POSTGRES_PASSWORD: CdlaidDB2025!Strong
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}
       POSTGRES_DB: cdlaid_analytics
     volumes:
       - cdlaid_pg_data:/var/lib/postgresql/data
@@ -16,40 +18,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  mysql:
-    image: mysql:8.0
-    container_name: cdlaid_mysql
-    restart: unless-stopped
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: MoodleRoot2025!Strong
-      MYSQL_DATABASE: moodle
-      MYSQL_USER: moodle_user
-      MYSQL_PASSWORD: MoodleDB2025!Strong
-    volumes:
-      - cdlaid_mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  moodle:
-    build:
-      context: ./moodle
-      dockerfile: Dockerfile
-    container_name: cdlaid_moodle
-    restart: unless-stopped
-    ports:
-      - "3000:80"
-    volumes:
-      - cdlaid_moodle_data:/var/www/moodledata
-      - ./moodle/config.php:/var/www/html/config.php
-    depends_on:
-      mysql:
-        condition: service_healthy
 
   lrs:
     image: yetanalytics/lrsql:latest
@@ -63,7 +31,7 @@ services:
       LRSQL_DB_PORT: 5432
       LRSQL_DB_NAME: cdlaid_analytics
       LRSQL_DB_USER: cdlaid_user
-      LRSQL_DB_PASSWORD: CdlaidDB2025!Strong
+      LRSQL_DB_PASSWORD: ${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}
       LRSQL_DB_SCHEMA: lrs
       LRSQL_API_KEY_DEFAULT: ${LRS_KEY}
       LRSQL_API_SECRET_DEFAULT: ${LRS_SECRET}
@@ -84,7 +52,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://cdlaid_user:CdlaidDB2025!Strong@postgres:5432/cdlaid_analytics
+      DATABASE_URL: postgresql://cdlaid_user:${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}@postgres:5432/cdlaid_analytics
       API_SECRET_KEY: ${API_SECRET_KEY}
       LRS_ENDPOINT: http://cdlaid_lrs:8080/xapi/statements
       LRS_KEY: ${LRS_KEY}
@@ -94,7 +62,7 @@ services:
       SERVER_ID: ${SERVER_ID}
       SCHOOL_ID: ${SCHOOL_ID}
       DBT_PROJECT_DIR: /app/cdlaid_dbt
-      DBT_PROFILES_DIR: /app
+      DBT_PROFILES_DIR: /app/cdlaid_dbt
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,7 +78,7 @@ services:
       - "8088:8088"
     environment:
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
-      DATABASE_URL: postgresql+psycopg2://cdlaid_user:CdlaidDB2025!Strong@postgres:5432/cdlaid_analytics
+      DATABASE_URL: postgresql+psycopg2://cdlaid_user:${POSTGRES_PASSWORD:-CdlaidDB2025!Strong}@postgres:5432/cdlaid_analytics
       SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
       SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL}
     depends_on:
@@ -123,6 +91,8 @@ services:
 
 volumes:
   cdlaid_pg_data:
-  cdlaid_mysql_data:
-  cdlaid_moodle_data:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_pg_data
   cdlaid_superset_home:
+    external: true
+    name: digital-learning-analytics-project_cdlaid_superset_home

@@ -1,11 +1,8 @@
 # School registration and management endpoints
-
 import uuid
 from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text
-
 from api.database import get_db
 from api.logger import log_to_audit
 
@@ -15,8 +12,11 @@ router = APIRouter(tags=["Admin - Schools"])
 @router.post("/schools")
 def register_school(request: Request, school: dict, db=Depends(get_db)):
     # Registers a new school in dim_school
-    # Required fields: school_id, school_name, region_id
-    required = ["school_id", "school_name", "region_id"]
+    # Required fields: school_id, school_name
+    # geo_id is optional at registration time -- a new school may not yet
+    # have a zone/woreda assignment, which can be set later via the
+    # geo admin endpoints in login_app/geo.py
+    required = ["school_id", "school_name"]
     for field in required:
         if field not in school:
             return {"error": "Missing required field: " + field}
@@ -28,23 +28,22 @@ def register_school(request: Request, school: dict, db=Depends(get_db)):
         text("SELECT school_id FROM mart.dim_school WHERE school_id = :sid"),
         {"sid": school["school_id"]}
     ).fetchone()
-
     if existing:
         return {"status": "exists", "school_id": school["school_id"]}
 
     db.execute(
         text("""
             INSERT INTO mart.dim_school
-                (school_id, school_name, region_id, school_type,
+                (school_id, school_name, geo_id, school_type,
                  is_active, created_at, updated_at)
             VALUES
-                (:school_id, :school_name, :region_id, :school_type,
+                (:school_id, :school_name, :geo_id, :school_type,
                  TRUE, :now, :now)
         """),
         {
             "school_id":   school["school_id"],
             "school_name": school["school_name"],
-            "region_id":   school["region_id"],
+            "geo_id":      school.get("geo_id"),
             "school_type": school.get("school_type", "Government"),
             "now":         now,
         }
@@ -74,6 +73,7 @@ def update_school(school_id, request: Request, updates: dict, db=Depends(get_db)
             SET
                 school_name = COALESCE(:school_name, school_name),
                 school_type = COALESCE(:school_type, school_type),
+                geo_id      = COALESCE(:geo_id, geo_id),
                 updated_at  = :now
             WHERE school_id = :school_id
         """),
@@ -81,6 +81,7 @@ def update_school(school_id, request: Request, updates: dict, db=Depends(get_db)
             "school_id":   school_id,
             "school_name": updates.get("school_name"),
             "school_type": updates.get("school_type"),
+            "geo_id":      updates.get("geo_id"),
             "now":         now,
         }
     )
@@ -93,7 +94,7 @@ def list_schools(db=Depends(get_db)):
     # Returns all active schools
     results = db.execute(
         text("""
-            SELECT school_id, school_name, region_id, school_type,
+            SELECT school_id, school_name, geo_id, school_type,
                    last_sync_date, is_active
             FROM mart.dim_school
             WHERE is_active = TRUE

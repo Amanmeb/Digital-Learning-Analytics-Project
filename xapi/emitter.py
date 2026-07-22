@@ -1,5 +1,3 @@
-
-
 import json
 import os
 import sqlite3
@@ -13,7 +11,6 @@ from xapi.validator import (
     validate_query_type,
     calculate_fingerprint,
 )
-
 
 # Read all dynamic values from environment variables
 # pathlib.Path handles all OS path separators automatically
@@ -33,7 +30,6 @@ def _get_connection():
     # Create parent directory if it does not exist
     # parents=True creates all intermediate directories
     # exist_ok=True does not raise error if directory already exists
-
     QUEUE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(QUEUE_DB_PATH))
 
@@ -64,7 +60,6 @@ def _get_connection():
 
 def _now():
     # Returns current UTC time in ISO 8601 format with Z suffix
-
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
@@ -74,7 +69,7 @@ def _build_actor(student_id):
     return {
         "objectType": "Agent",
         "account": {
-            "name": student_id,
+            "name":     student_id,
             "homePage": XAPI_HOMEPAGE_URL,
         },
     }
@@ -90,7 +85,6 @@ def _build_camara_context(
     extra=None,
 ):
     # Builds Camara custom context extension
-
     ext = {
         "school_id":      school_id,
         "device_id":      device_id,
@@ -199,7 +193,6 @@ def emit_session_end(
     tracking_depth="full",
 ):
     # Emits a session-ended event
-
     statement = {
         "id":        str(uuid.uuid4()),
         "timestamp": _now(),
@@ -223,6 +216,185 @@ def emit_session_end(
             is_offline, server_id, tracking_depth,
         ),
     }
+    return _emit(statement)
+
+
+def emit_heartbeat(
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    server_id,
+    is_offline,
+    session_id,
+    tracking_depth="full",
+):
+    # Emits a session heartbeat event every 5 minutes while student is active
+    # Used to calculate accurate session duration if connection drops
+    # If session-ended is never received the last heartbeat timestamp
+    # is used by dbt to estimate session end time
+    statement = {
+        "id":        str(uuid.uuid4()),
+        "timestamp": _now(),
+        "actor":     _build_actor(student_id),
+        "verb": {
+            "id":      CAMARA_VERB_BASE + "/session-heartbeat",
+            "display": {"en-US": "heartbeat"},
+        },
+        "object": {
+            "id":         ACTIVITY_BASE + "/session/" + session_id,
+            "objectType": "Activity",
+            "definition": {
+                "type": ACTIVITY_BASE + "/types/session",
+            },
+        },
+        "context": _build_camara_context(
+            school_id, device_id, platform_id,
+            is_offline, server_id, tracking_depth,
+        ),
+    }
+    return _emit(statement)
+
+
+def emit_idle_start(
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    server_id,
+    is_offline,
+    session_id,
+    tracking_depth="full",
+):
+    # Emits an idle-started event
+    # Called when no input is detected past the idle threshold setting
+    # idle_threshold_minutes in ops.settings controls when this fires
+    statement = {
+        "id":        str(uuid.uuid4()),
+        "timestamp": _now(),
+        "actor":     _build_actor(student_id),
+        "verb": {
+            "id":      CAMARA_VERB_BASE + "/idle-started",
+            "display": {"en-US": "idle started"},
+        },
+        "object": {
+            "id":         ACTIVITY_BASE + "/session/" + session_id,
+            "objectType": "Activity",
+            "definition": {
+                "type": ACTIVITY_BASE + "/types/session",
+            },
+        },
+        "context": _build_camara_context(
+            school_id, device_id, platform_id,
+            is_offline, server_id, tracking_depth,
+        ),
+    }
+    return _emit(statement)
+
+
+def emit_idle_end(
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    server_id,
+    is_offline,
+    session_id,
+    idle_duration_seconds,
+    tracking_depth="full",
+):
+    # Emits an idle-ended event
+    # Called when input resumes after an idle period
+    # idle_duration_seconds is the time spent idle, used to subtract
+    # idle time from active learning time per the school setting that
+    # controls what counts as learning time
+    statement = {
+        "id":        str(uuid.uuid4()),
+        "timestamp": _now(),
+        "actor":     _build_actor(student_id),
+        "verb": {
+            "id":      CAMARA_VERB_BASE + "/idle-ended",
+            "display": {"en-US": "idle ended"},
+        },
+        "object": {
+            "id":         ACTIVITY_BASE + "/session/" + session_id,
+            "objectType": "Activity",
+            "definition": {
+                "type": ACTIVITY_BASE + "/types/session",
+            },
+        },
+        "result": {
+            "duration": "PT" + str(idle_duration_seconds) + "S",
+        },
+        "context": _build_camara_context(
+            school_id, device_id, platform_id,
+            is_offline, server_id, tracking_depth,
+        ),
+    }
+    return _emit(statement)
+
+
+def emit_resource_event(
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    server_id,
+    is_offline,
+    resource_id,
+    resource_name,
+    event_type,
+    session_id,
+    duration_seconds=None,
+    tracking_depth="full",
+):
+    # Emits a device-tracking resource event
+    # event_type maps to a specific verb -- app/site/book opened or closed
+    # resource_id refers to a dim_resource_catalog row, not dim_content
+    # duration_seconds is only set on the closed events, None on opened
+    verb_map = {
+        "app_opened":    CAMARA_VERB_BASE + "/app-opened",
+        "app_closed":    CAMARA_VERB_BASE + "/app-closed",
+        "site_visited":  CAMARA_VERB_BASE + "/site-visited",
+        "site_left":     CAMARA_VERB_BASE + "/site-left",
+        "book_opened":   CAMARA_VERB_BASE + "/book-opened",
+        "book_closed":   CAMARA_VERB_BASE + "/book-closed",
+    }
+    verb_id = verb_map.get(event_type)
+    if verb_id is None:
+        _quarantine(
+            {"resource_id": resource_id, "event_type": event_type},
+            ["Unknown resource event_type: " + str(event_type)],
+        )
+        return False
+
+    statement = {
+        "id":        str(uuid.uuid4()),
+        "timestamp": _now(),
+        "actor":     _build_actor(student_id),
+        "verb": {
+            "id":      verb_id,
+            "display": {"en-US": event_type.replace("_", " ")},
+        },
+        "object": {
+            "id":         ACTIVITY_BASE + "/resource/" + resource_id,
+            "objectType": "Activity",
+            "definition": {
+                "name": {"en-US": resource_name},
+                "type": ACTIVITY_BASE + "/types/resource",
+            },
+        },
+        "context": _build_camara_context(
+            school_id, device_id, platform_id,
+            is_offline, server_id, tracking_depth,
+            extra={"session_id": session_id},
+        ),
+    }
+    if duration_seconds is not None:
+        statement["result"] = {
+            "duration": "PT" + str(duration_seconds) + "S",
+        }
+
     return _emit(statement)
 
 

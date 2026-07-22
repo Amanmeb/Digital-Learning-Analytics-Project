@@ -1,11 +1,14 @@
 -- Mart model for School Performance dashboard
 -- Calculates school-level performance index and risk flags
+-- region_id/dim_region replaced with a walk through dim_geo_node --
+-- dim_school.geo_id points to the zone level, so this walks up one
+-- level via parent_geo_id to reach the equivalent region
 
 with school_metrics as (
     select
         s.school_id,
         s.school_name,
-        s.region_id,
+        rg.geo_id                                as region_geo_id,
         s.school_type,
         s.total_students,
         sum(ss.active_students)                 as active_students,
@@ -14,14 +17,16 @@ with school_metrics as (
         max(ss.summary_date)                    as last_active_date
     from {{ ref("core_school_summary") }} ss
     join mart.dim_school s on ss.school_id = s.school_id
-    group by s.school_id, s.school_name, s.region_id, s.school_type, s.total_students
+    left join mart.dim_geo_node zg on s.geo_id = zg.geo_id
+    left join mart.dim_geo_node rg on zg.parent_geo_id = rg.geo_id
+    group by s.school_id, s.school_name, rg.geo_id, s.school_type, s.total_students
 ),
 
 school_scores as (
     select
         school_id,
         school_name,
-        region_id,
+        region_geo_id,
         school_type,
         total_students,
         active_students,
@@ -48,7 +53,7 @@ school_scores as (
 select
     school_id,
     school_name,
-    region_id,
+    region_geo_id,
     school_type,
     total_students,
     active_students,
