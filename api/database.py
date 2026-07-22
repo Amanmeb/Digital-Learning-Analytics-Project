@@ -2,13 +2,15 @@
 # Used by all routers to interact with PostgreSQL
 
 import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://cdlaid_user:CdlaidDB2025!Strong@localhost:5432/cdlaid_analytics",
+)
 
-engine = create_async_engine(
+engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_size=10,
@@ -16,23 +18,26 @@ engine = create_async_engine(
 )
 
 SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
     bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
 )
 
 Base = declarative_base()
 
 
-async def get_db():
-    async with SessionLocal() as session:
-        yield session
-
-
-async def check_db_connection():
+def get_db():
+    db = SessionLocal()
     try:
-        async with engine.connect() as conn:
-            await conn.execute(text("SELECT 1"))
+        yield db
+    finally:
+        db.close()
+
+
+def check_db_connection():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
         return True
     except Exception:
         return False

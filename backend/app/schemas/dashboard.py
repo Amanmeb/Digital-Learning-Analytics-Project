@@ -10,6 +10,8 @@ class DashboardCards(BaseModel):
     average_score: float | None = None
 
     students: int | None = None
+    active_sessions: int | None = None
+    average_completion: float | None = None
     teachers: int | None = None
     schools: int | None = None
     devices: int | None = None

@@ -1,15 +1,49 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.auth.security import decode_token
 
+
 auth_scheme = HTTPBearer()
 
-def get_current_user(
+
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
 ):
     token = credentials.credentials
-    return decode_token(token)
+
+    payload = decode_token(token)
+
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+
+    return payload
+
+
+# from fastapi import Depends, HTTPException, status
+# from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+
+# from app.auth.security import decode_token
+
+# auth_scheme = HTTPBearer()
+
+# def get_current_user(
+#     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+# ):
+#     token = credentials.credentials
+#     payload = decode_token(token)
+
+#     if not payload:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid or expired token",
+#         )
+
+#     return payload
 
 
 

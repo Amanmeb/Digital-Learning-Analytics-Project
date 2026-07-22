@@ -82,12 +82,11 @@ async def get_platform_dashboard(db, user):
                 total_minutes,
                 offline_sessions,
                 offline_pct,
-                sync_health_pct,
-                total_syncs,
-                successful_syncs,
-                active_devices,
-                avg_usage_minutes,
-                total_usage_minutes,
+                completion_rate_pct,
+                total_ai_queries,
+                students_used_ai,
+                availability_rate_pct,
+                risk_flag,
                 refreshed_at
             FROM mart.mart_platform_analytics
             ORDER BY total_sessions DESC
@@ -104,17 +103,20 @@ async def get_school_dashboard(db, user):
         text("""
             SELECT
                 school_id,
-                date_key,
-                total_syncs,
-                successful_syncs,
-                sync_health_pct,
-                active_devices,
-                avg_usage_minutes,
+                school_name,
+                region_geo_id,
+                school_type,
+                total_students,
+                active_students,
                 total_sessions,
-                total_usage_minutes,
+                total_learning_hours,
+                registration_coverage_pct,
+                performance_index,
+                last_active_date,
+                risk_flag,
                 refreshed_at
-            FROM mart.mart_device_infrastructure
-            ORDER BY date_key DESC
+            FROM mart.mart_school_performance
+            ORDER BY performance_index DESC NULLS LAST
         """)
     )
 
@@ -140,25 +142,25 @@ async def get_device_dashboard(db, user):
     result = await db.execute(
         text("""
             SELECT
+                device_id,
                 school_id,
-                date_key,
-                total_syncs,
-                successful_syncs,
-                sync_health_pct,
-                active_devices,
-                avg_usage_minutes,
-                total_sessions,
-                total_usage_minutes,
+                device_name,
+                device_type,
+                os,
+                assigned_location,
+                health_score,
+                bandwidth_used_mb_daily,
+                last_seen_at,
+                health_status,
                 refreshed_at
-            FROM mart.mart_device_infrastructure
-            ORDER BY total_usage_minutes DESC
+            FROM mart.mart_device_health
+            ORDER BY health_score ASC NULLS LAST
         """)
     )
 
     rows = result.mappings().all()
 
     return {"data": rows}
-
 
 
 

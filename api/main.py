@@ -11,10 +11,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
 from api.database import check_db_connection
 from api.logger import logger
-from api.routers import health, ingest
+from api.routers import dashboard, health
+from app.routers import ingest
 from api.routers.admin import (
     schools,
     regions,
@@ -25,9 +25,13 @@ from api.routers.admin import (
     import_data,
     templates as templates_router,
 )
+# from app.auth.router import router as auth_router
+from backend.app.auth.router import router as auth_router
+# from backend.app.auth.router import router as auth_router
 
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
-API_TITLE = "CDLAID Ingestion API"
+# API_TITLE = "CDLAID Ingestion API"
+API_TITLE = "CDLAID Learning Analytics API"
 API_VERSION = "1.0.0"
 
 
@@ -80,8 +84,13 @@ async def request_id_middleware(request, call_next):
 
 
 # Register all routers
+app.include_router(
+    auth_router,
+    prefix="/api/v1"
+)
 app.include_router(health.router,               prefix="/api/v1")
 app.include_router(ingest.router,               prefix="/api/v1")
+app.include_router(dashboard.router,            prefix="/api/v1")
 app.include_router(schools.router,              prefix="/api/v1/admin")
 app.include_router(regions.router,              prefix="/api/v1/admin")
 app.include_router(providers.router,            prefix="/api/v1/admin")
@@ -90,3 +99,4 @@ app.include_router(settings.router,             prefix="/api/v1/admin")
 app.include_router(notifications.router,        prefix="/api/v1/admin")
 app.include_router(import_data.router,          prefix="/api/v1/admin")
 app.include_router(templates_router.router,     prefix="/api/v1/admin")
+

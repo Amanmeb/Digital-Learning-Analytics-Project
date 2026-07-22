@@ -1,4 +1,57 @@
-﻿# Camara Digital Learning Analytics and Impact Dashboard
+﻿#Setting the project
+
+# CDLAID Learning Analytics API
+
+## Requirements
+
+- Python 3.12+
+- PostgreSQL
+- Docker (for production deployment)
+
+The project requires Python 3.12 because FastAPI 0.138.2 and the dependency stack are pinned for Python 3.12.
+
+## Local Development Setup
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd Digital-Learning-Analytics-Project```
+
+### 2 Create virtual environment
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+
+### 3
+
+For windows:
+.venv\Scripts\activate
+
+### 4 Installl dependencies
+pip install -r backend/requirements.txt
+
+### 5 Create a .env file in the project root 
+DATABASE_URL=postgresql://username:password@localhost:5432/cdlaid_analytics
+API_SECRET_KEY=your_secret_key
+ENVIRONMENT=development
+
+### 6. Start the API
+
+The backend uses the `backend/app` package structure.
+
+Run:
+
+```bash
+PYTHONPATH=$(pwd)/backend uvicorn api.main:app --reload
+
+### 7 Swagger documentation
+Open:
+http://127.0.0.1:8000/api/docs
+
+
+# Camara Digital Learning Analytics and Impact Dashboard
 
 CDLAID is a centralised digital learning analytics platform built for
 Camara Education Ethiopia. It collects learning activity data from
@@ -43,3 +96,12 @@ Secondary purple:  #943266
 ## License
 
 Camara Education Ethiopia. All rights reserved.
+# CDLAID Learning Analytics API
+
+## Local Development Setup
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd Digital-Learning-Analytics-Project

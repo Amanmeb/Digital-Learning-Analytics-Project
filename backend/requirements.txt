@@ -4,6 +4,8 @@ uvicorn[standard]==0.35.0
 
 sqlalchemy[asyncio]==2.0.41
 asyncpg==0.30.0
+psycopg2-binary==2.9.10
+python-multipart==0.0.32
 
 pydantic==2.11.7
 pydantic-settings==2.10.1
