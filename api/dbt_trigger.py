@@ -11,7 +11,11 @@ from api.logger import logger
 
 DBT_COOLDOWN_SECONDS = 300
 DBT_PROJECT_DIR = os.environ.get("DBT_PROJECT_DIR", "/app/cdlaid_dbt")
-DBT_PROFILES_DIR = os.environ.get("DBT_PROFILES_DIR", "/app")
+DBT_PROFILES_DIR = os.environ.get(
+    "DBT_PROFILES_DIR",
+    "/app/cdlaid_dbt"
+)
+# DBT_PROFILES_DIR = os.environ.get("DBT_PROFILES_DIR", "/app")
 
 _last_dbt_run = 0
 _dbt_lock = threading.Lock()

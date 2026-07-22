@@ -62,7 +62,7 @@ services:
       SERVER_ID: ${SERVER_ID}
       SCHOOL_ID: ${SCHOOL_ID}
       DBT_PROJECT_DIR: /app/cdlaid_dbt
-      DBT_PROFILES_DIR: /app
+      DBT_PROFILES_DIR: /app/cdlaid_dbt
     depends_on:
       postgres:
         condition: service_healthy
