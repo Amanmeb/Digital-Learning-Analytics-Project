@@ -353,6 +353,7 @@ for student_id, school_id, grade_id, gender in students:
         content_id = content[0]
         subject_id = content[2]
         session_dur = random.randint(15, 90)
+        session_uuid = str(uuid.uuid4())
 
         # Session started
         verb_s = "https://camara.org/xapi/verbs/session-started"
@@ -361,7 +362,8 @@ for student_id, school_id, grade_id, gender in students:
         if not cur.fetchone():
             camara_ctx = {"school_id":school_id,"device_id":device_id,
                          "platform_id":platform,"is_offline":str(is_offline).lower(),
-                         "server_id":server_id,"tracking_depth":"full"}
+                         "server_id":server_id,"tracking_depth":"full",
+                         "session_id":session_uuid}
             cur.execute("""
                 INSERT INTO raw.xapi_statements
                     (statement_id,server_id,school_id,actor,verb,
@@ -371,12 +373,11 @@ for student_id, school_id, grade_id, gender in students:
                   json.dumps({"objectType":"Agent","account":{"name":student_id,
                               "homePage":"https://camara.org"}}),
                   json.dumps({"id":verb_s}),
-                  json.dumps({"id":"https://camara.org/activities/"+content_id}),
+                  json.dumps({"id":"https://camara.org/xapi/activities/session/"+session_uuid}),
                   None,
                   json.dumps({"extensions":{"https://camara.org/xapi/context":camara_ctx}}),
                   session_date, fp_s))
             stmt_count += 1
-
         # Content accessed
         verb_c = "http://adlnet.gov/expapi/verbs/experienced"
         content_time = session_date + timedelta(minutes=random.randint(2,10))
@@ -481,7 +482,8 @@ for student_id, school_id, grade_id, gender in students:
         if not cur.fetchone():
             camara_ctx_se = {"school_id":school_id,"device_id":device_id,
                             "platform_id":platform,"is_offline":str(is_offline).lower(),
-                            "server_id":server_id,"tracking_depth":"full"}
+                            "server_id":server_id,"tracking_depth":"full",
+                            "session_id":session_uuid}
             cur.execute("""
                 INSERT INTO raw.xapi_statements
                     (statement_id,server_id,school_id,actor,verb,
@@ -491,7 +493,7 @@ for student_id, school_id, grade_id, gender in students:
                   json.dumps({"objectType":"Agent","account":{"name":student_id,
                               "homePage":"https://camara.org"}}),
                   json.dumps({"id":verb_se}),
-                  json.dumps({"id":"https://camara.org/activities/"+content_id}),
+                  json.dumps({"id":"https://camara.org/xapi/activities/session/"+session_uuid}),
                   json.dumps({"duration":"PT"+str(session_dur)+"M"}),
                   json.dumps({"extensions":{"https://camara.org/xapi/context":camara_ctx_se}}),
                   session_end_time, fp_se))
@@ -521,7 +523,7 @@ for student_id, school_id, grade_id, gender in students:
                 camara_ctx_ro = {"school_id":school_id,"device_id":device_id,
                                 "platform_id":platform,"is_offline":str(is_offline).lower(),
                                 "server_id":server_id,"tracking_depth":"full",
-                                "session_id":str(uuid.uuid4())}
+                                "session_id":session_uuid}
                 cur.execute("""
                     INSERT INTO raw.xapi_statements
                         (statement_id,server_id,school_id,actor,verb,
@@ -545,7 +547,7 @@ for student_id, school_id, grade_id, gender in students:
                 camara_ctx_rc = {"school_id":school_id,"device_id":device_id,
                                 "platform_id":platform,"is_offline":str(is_offline).lower(),
                                 "server_id":server_id,"tracking_depth":"full",
-                                "session_id":str(uuid.uuid4())}
+                                "session_id":session_uuid}
                 cur.execute("""
                     INSERT INTO raw.xapi_statements
                         (statement_id,server_id,school_id,actor,verb,
@@ -575,7 +577,8 @@ for student_id, school_id, grade_id, gender in students:
             if not cur.fetchone():
                 camara_ctx_is = {"school_id":school_id,"device_id":device_id,
                                 "platform_id":platform,"is_offline":str(is_offline).lower(),
-                                "server_id":server_id,"tracking_depth":"full"}
+                                "server_id":server_id,"tracking_depth":"full",
+                                "session_id":session_uuid}
                 cur.execute("""
                     INSERT INTO raw.xapi_statements
                         (statement_id,server_id,school_id,actor,verb,
@@ -597,7 +600,8 @@ for student_id, school_id, grade_id, gender in students:
             if not cur.fetchone():
                 camara_ctx_ie = {"school_id":school_id,"device_id":device_id,
                                 "platform_id":platform,"is_offline":str(is_offline).lower(),
-                                "server_id":server_id,"tracking_depth":"full"}
+                                "server_id":server_id,"tracking_depth":"full",
+                                "session_id":session_uuid}
                 cur.execute("""
                     INSERT INTO raw.xapi_statements
                         (statement_id,server_id,school_id,actor,verb,
