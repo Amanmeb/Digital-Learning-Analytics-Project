@@ -27,8 +27,6 @@ from api.routers.admin import (
 )
 # from app.auth.router import router as auth_router
 from backend.app.auth.router import router as auth_router
-# from backend.app.auth.router import router as auth_router
-
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 # API_TITLE = "CDLAID Ingestion API"
 API_TITLE = "CDLAID Learning Analytics API"
