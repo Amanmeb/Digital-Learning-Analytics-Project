@@ -61,29 +61,33 @@ def school_dashboard(db=Depends(get_db)):
 @router.get("/platform")
 def platform_dashboard(db=Depends(get_db)):
     result = db.execute(
-        text("""
-            SELECT
-                school_id,
-                platform_id,
-                platform_name,
-                platform_type,
-                tracking_depth,
-                unique_students,
-                total_sessions,
-                avg_session_minutes,
-                total_minutes,
-                offline_sessions,
-                offline_pct,
-                completion_rate_pct,
-                total_ai_queries,
-                students_used_ai,
-                availability_rate_pct,
-                risk_flag,
-                refreshed_at
-            FROM mart.mart_platform_analytics
-            ORDER BY total_sessions DESC
-        """)
-    )
+    text("""
+        SELECT
+            school_id,
+            platform_id,
+            platform_name,
+            platform_type,
+            tracking_depth,
+            unique_students,
+            total_sessions,
+            avg_session_minutes,
+            total_minutes,
+            offline_sessions,
+            offline_pct,
+            completion_rate_pct,
+            total_ai_queries,
+            students_used_ai,
+            sync_health_pct,
+            total_syncs,
+            successful_syncs,
+            active_devices,
+            avg_usage_minutes,
+            total_usage_minutes,
+            refreshed_at
+        FROM mart.mart_platform_analytics
+        ORDER BY total_sessions DESC
+    """)
+)
 
     return {"data": _all_rows(result)}
 

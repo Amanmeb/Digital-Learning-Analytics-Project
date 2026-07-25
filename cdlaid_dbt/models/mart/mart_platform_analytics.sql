@@ -114,9 +114,15 @@ from platform_usage u
 join mart.dim_platform p
     on u.platform_id = p.platform_id
 
+-- left join {{ ref("core_platform_availability") }} ph
+--     on ph.school_id = u.school_id
+--    and ph.date_key = u.date_key
+left join mart.dim_date dd
+    on dd.date_key = u.date_key
+
 left join {{ ref("core_platform_availability") }} ph
     on ph.school_id = u.school_id
-   and ph.date_key = u.date_key
+   and ph.sync_date = dd.full_date
 
 left join {{ ref("core_device_utilization") }} du
     on du.school_id = u.school_id
@@ -131,4 +137,3 @@ left join platform_ai pa
     on pa.school_id = u.school_id
    and pa.platform_id = u.platform_id
    and pa.date_key = u.date_key
-;
