@@ -8,3 +8,7 @@ venv/
 .env
 .env.example
 edge/queue.db
+
+venv/
+.env
+.env:*
