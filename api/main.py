@@ -7,14 +7,13 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from api.database import check_db_connection
 from api.logger import logger
 from api.routers import dashboard, health
 from app.routers import ingest
+from api.routers import offline_sync
 from api.routers.admin import (
     schools,
     regions,
@@ -97,4 +96,4 @@ app.include_router(settings.router,             prefix="/api/v1/admin")
 app.include_router(notifications.router,        prefix="/api/v1/admin")
 app.include_router(import_data.router,          prefix="/api/v1/admin")
 app.include_router(templates_router.router,     prefix="/api/v1/admin")
-
+app.include_router(offline_sync.router,         prefix="/api/v1")

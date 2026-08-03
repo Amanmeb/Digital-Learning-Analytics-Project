@@ -1,5 +1,4 @@
 # School registration and management endpoints
-import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text

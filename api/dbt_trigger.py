@@ -6,7 +6,6 @@ import subprocess
 import threading
 import time
 import os
-from datetime import datetime, timezone
 from api.logger import logger
 
 DBT_COOLDOWN_SECONDS = 300

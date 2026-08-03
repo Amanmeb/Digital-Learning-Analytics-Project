@@ -1,50 +1,61 @@
 version: 2
+
+sources:
+  - name: mart
+    schema: mart
+    tables:
+      - name: dim_student
+      - name: dim_school
+      - name: dim_device
+      - name: dim_platform
+
+      
+
 models:
-  - name: stg_sessions
-    description: Staging model for session events from raw xAPI statements
+  - name: core_sessions
     columns:
-      - name: statement_id
-        data_tests:
+      - name: session_uuid
+        tests:
           - not_null
           - unique
+
+
+
+  - name: stg_fact_session_incremental
+    columns:
+      - name: session_id
+        tests:
+          - not_null
+          - unique
+
       - name: student_id
-        data_tests:
-          - not_null
+        tests:
+          - relationships:
+              arguments:
+                  to: source('mart', 'dim_student')
+                  field: student_id
+
       - name: school_id
-        data_tests:
-          - not_null
-  - name: stg_assessments
-    description: Staging model for assessment attempt events
-    columns:
-      - name: statement_id
-        data_tests:
-          - not_null
-          - unique
-      - name: score_raw
-        data_tests:
-          - not_null
-  - name: core_student_engagement
-    description: Core student engagement metrics per school per day
-    columns:
-      - name: student_id
-        data_tests:
-          - not_null
-      - name: school_id
-        data_tests:
-          - not_null
-      - name: session_date
-        data_tests:
-          - not_null
-  - name: mart_school_performance
-    description: School performance metrics for dashboard
-    columns:
-      - name: school_id
-        data_tests:
-          - not_null
-          - unique
-      - name: performance_index
-        data_tests:
-          - not_null
+        tests:
+          - relationships:
+              arguments:
+                  to: source('mart', 'dim_school')
+                  field: school_id
+
+      - name: device_id
+        tests:
+          - relationships:
+              arguments:
+                to: source('mart', 'dim_device')
+                field: device_id
+
+      - name: platform_id
+        tests:
+          - relationships:
+              arguments:
+                  to: source('mart', 'dim_platform')
+                  field: platform_id   
+
   - name: mart_executive_overview
     description: Daily school level overview metrics for Executive dashboard
     columns:
@@ -60,32 +71,124 @@ models:
       - name: school_id
         data_tests:
           - not_null
+
       - name: summary_date
+        data_tests:
+          - not_null        
+
+  - name: stg_sessions
+    description: Staging model for session events from raw xAPI statements
+    columns:
+      - name: statement_id
+        data_tests:
+          - not_null
+          - unique
+
+      - name: student_id
+        data_tests:
+          - not_null
+
+      - name: school_id
+        data_tests:
+          - not_null
+
+  - name: stg_assessments
+    description: Staging model for assessment attempt events
+    columns:
+      - name: statement_id
+        data_tests:
+          - not_null
+          - unique
+
+      - name: score_raw
+        data_tests:
+          - not_null
+
+  - name: core_student_engagement
+    description: Core student engagement metrics per school per day
+    columns:
+      - name: student_id
+        data_tests:
+          - not_null
+
+      - name: school_id
+        data_tests:
+          - not_null
+
+      - name: session_date
+        data_tests:
+          - not_null
+
+  - name: mart_school_performance
+    description: School performance metrics for dashboard
+    columns:
+      - name: school_id
+        data_tests:
+          - not_null
+          - unique
+
+      - name: performance_index
         data_tests:
           - not_null
 
 
+
+  
+
+ 
+
+
+
+    
+
+
+
+
+
 # new
+
 # - name: mart_executive_overview
+
 #   description: Daily school level overview metrics for Executive dashboard
+
 #   columns:
+
 #     - name: school_id
+
 #       data_tests:
+
 #         - not_null
+
+
 
 #     - name: summary_date
+
 #       data_tests:
+
 #         - not_null
+
+
 
 #     - name: active_students
+
 #       data_tests:
+
 #         - not_null
+
+
 
 #     - name: total_registered_students
+
 #       data_tests:
+
 #         - not_null
 
+
+
 #     - name: active_rate_pct
+
 #       data_tests:
+
 #         - not_null
+
 

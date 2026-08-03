@@ -7,27 +7,79 @@
 -- stg_resource_usage_incremental.sql for the original discovery of
 -- this failure mode.
 
-{{ config(
-    materialized="incremental",
-    unique_key="session_id",
-    post_hook=["insert into mart.fact_session select * from {{ this }} where session_id not in (select session_id from mart.fact_session) on conflict (session_id) do nothing"]
-) }}
 
-select
-    session_uuid                as session_id,
+{{ config(
+    materialized='incremental',
+    unique_key='session_id',
+    post_hook=[
+"
+insert into mart.fact_session(
+    session_id,
     student_id,
     school_id,
     device_id,
     platform_id,
-    null::integer                as date_key,
-    null::varchar(20)            as project_id,
+    date_key,
+    project_id,
     session_duration_minutes,
     is_offline,
     session_start,
     session_end,
     event_fingerprint,
-    now()                        as created_at
-from {{ ref("core_sessions") }}
+    created_at
+)
+select
+    session_id,
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    date_key,
+    project_id,
+    session_duration_minutes,
+    is_offline,
+    session_start,
+    session_end,
+    event_fingerprint,
+    created_at
+
+from {{ this }}
+where session_id is not null
+and not exists (
+    select 1
+    from mart.fact_session f
+    where f.session_id = {{ this }}.session_id
+)
+on conflict(session_id) do nothing
+"
+    ]
+) }}
+
+select
+    session_uuid as session_id,
+    student_id,
+    school_id,
+    device_id,
+    platform_id,
+    null::integer as date_key,
+    null::varchar(20) as project_id,
+    session_duration_minutes,
+    is_offline,
+    session_start,
+    session_end,
+    event_fingerprint,
+    now() as created_at
+from {{ ref('core_sessions') }}
+where session_uuid is not null
+  and student_id is not null
+  and school_id is not null
+  and device_id is not null
+  and platform_id is not null
 {% if is_incremental() %}
-where session_uuid not in (select session_id from {{ this }})
+and session_uuid not in (
+    select session_id
+    from {{ this }}
+)
 {% endif %}
+
+

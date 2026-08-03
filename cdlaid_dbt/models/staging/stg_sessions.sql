@@ -2,6 +2,7 @@
 -- Reads from raw xAPI statements and extracts session data
 -- Filters for session-started and session-ended verbs only
 with raw_sessions as (
+        -- Online events
     select
         statement_id,
         school_id,
@@ -14,10 +15,51 @@ with raw_sessions as (
         timestamp,
         event_fingerprint
     from raw.xapi_statements
+
     where verb->>'id' in (
         'https://camara.org/xapi/verbs/session-started',
         'https://camara.org/xapi/verbs/session-ended'
     )
+
+    union all
+
+    -- Offline events
+    select
+        id::text as statement_id,
+        school_id,
+        device_id as server_id,
+        statement->'actor'      as actor,
+        statement->'verb'       as verb,
+        statement->'object'     as object,
+        statement->'result'     as result,
+        statement->'context'    as context,
+        received_at             as timestamp,
+        fingerprint             as event_fingerprint
+
+    from mart.stg_offline_events
+
+    where processed = false
+
+      and statement->'verb'->>'id' in (
+        'https://camara.org/xapi/verbs/session-started',
+        'https://camara.org/xapi/verbs/session-ended'
+      )
+    -- select
+    --     statement_id,
+    --     school_id,
+    --     server_id,
+    --     actor,
+    --     verb,
+    --     object,
+    --     result,
+    --     context,
+    --     timestamp,
+    --     event_fingerprint
+    -- from raw.xapi_statements
+    -- where verb->>'id' in (
+    --     'https://camara.org/xapi/verbs/session-started',
+    --     'https://camara.org/xapi/verbs/session-ended'
+    -- )
 )
 select
     statement_id,

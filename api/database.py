@@ -42,6 +42,48 @@ def check_db_connection():
     except Exception:
         return False
 
+    # offline_sync.py
+def insert_offline_event(
+    fingerprint,
+    school_id,
+    device_id,
+    statement,
+):
+    sql = text("""
+        INSERT INTO mart.stg_offline_events
+        (
+            fingerprint,
+            school_id,
+            device_id,
+            statement
+        )
+        VALUES
+        (
+            :fingerprint,
+            :school_id,
+            :device_id,
+            CAST(:statement AS jsonb)
+        )
+        ON CONFLICT (fingerprint)
+        DO NOTHING
+        RETURNING id;
+    """)
+
+    with engine.begin() as conn:
+        result = conn.execute(
+            sql,
+            {
+                "fingerprint": fingerprint,
+                "school_id": school_id,
+                "device_id": device_id,
+                "statement": statement,
+            },
+        )
+
+        row = result.fetchone()
+
+    return row is not None
+
 # import os
 # from sqlalchemy import create_engine, text
 # from sqlalchemy.orm import sessionmaker, declarative_base

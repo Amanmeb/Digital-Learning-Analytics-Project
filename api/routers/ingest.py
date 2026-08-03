@@ -6,10 +6,8 @@ import os
 import uuid
 import httpx
 import json
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request, Header
-from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from api.database import get_db
@@ -114,7 +112,7 @@ async def ingest_statements(request: Request, db=Depends(get_db)):
     rejected = 0
     lrs_statements = []
 
-    now = datetime.now(timezone.utc)
+    # now = datetime.now(timezone.utc)
 
     for statement in statements:
         # Validate statement

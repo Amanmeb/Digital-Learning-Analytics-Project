@@ -87,12 +87,24 @@ function addEvent(statement) {
                     return;
                 }
 
+                // new record -- add to the queue
                 var record = {
                     fingerprint: fingerprint,
                     statement: statement,
+                    status: "pending",
+                    retry_count: 0,
                     synced: 0,
-                    created_at: new Date().toISOString()
+                    created_at: new Date().toISOString(),
+                    last_attempt: null,
+                    last_error: null
                 };
+
+                // var record = {
+                //     fingerprint: fingerprint,
+                //     statement: statement,
+                //     synced: 0,
+                //     created_at: new Date().toISOString()
+                // };
 
                 var addRequest = store.add(record);
 

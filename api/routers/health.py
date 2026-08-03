@@ -2,7 +2,6 @@
 # Used by monitoring tools and the school status monitor
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from api.database import get_db, check_db_connection

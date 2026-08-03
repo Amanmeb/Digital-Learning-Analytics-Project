@@ -199,7 +199,6 @@ function attemptSync() {
 setInterval(function () {
     attemptSync();
 }, SYNC_INTERVAL_MS);
-
 // Listen for the Background Sync API event when supported
 self.addEventListener("sync", function (event) {
     if (event.tag === "camara-xapi-sync") {

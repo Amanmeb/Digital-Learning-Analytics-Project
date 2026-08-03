@@ -18,6 +18,24 @@ with raw_ai as (
 
     where verb->>'id' = 'https://camara.org/xapi/verbs/ai-queried'
 
+    union all
+    -- offline events
+    select
+        id::text as statement_id,
+        school_id,
+        statement->'actor'      as actor,
+        statement->'verb'       as verb,
+        statement->'object'     as object,
+        statement->'result'     as result,
+        statement->'context'    as context,
+        received_at             as timestamp,
+        fingerprint             as event_fingerprint
+    from mart.stg_offline_events
+    where processed = false
+        and statement->'verb'->>'id' = 
+        'https://camara.org/xapi/verbs/ai-queried'
+
+
 ),
 
 parsed_ai as (
