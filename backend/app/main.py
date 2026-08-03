@@ -1,4 +1,3 @@
-from backend.app.schemas.offline_sync import router as offline_sync_router
 from fastapi import FastAPI
 
 from app.auth.router import router as auth_router
@@ -15,7 +14,6 @@ app = FastAPI(
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
-app.include_router(offline_sync_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
