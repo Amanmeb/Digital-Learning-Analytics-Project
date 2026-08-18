@@ -1,4 +1,4 @@
-﻿-- Migration 001
+-- Migration 001
 -- Create four schema layers
 -- CDLAID Analytics Platform
 

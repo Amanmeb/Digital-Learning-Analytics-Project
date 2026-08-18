@@ -1,4 +1,4 @@
-﻿-- Migration 002b
+-- Migration 002b
 -- Seed data for static dimension tables
 -- CDLAID Analytics Platform
 

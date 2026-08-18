@@ -1,4 +1,4 @@
-﻿-- Migration 006
+-- Migration 006
 -- Operational tables
 -- CDLAID Analytics Platform
 

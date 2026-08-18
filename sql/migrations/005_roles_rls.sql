@@ -1,4 +1,4 @@
-﻿-- Migration 005
+-- Migration 005
 -- PostgreSQL roles, RLS policies, and GRANT statements
 -- CDLAID Analytics Platform
 
