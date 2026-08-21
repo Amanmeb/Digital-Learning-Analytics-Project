@@ -1,6 +1,5 @@
 # CDLAID Ingestion API -- FastAPI entry point
 # All routes are prefixed with /api/v1/
-# Future versions use /api/v2/ -- existing agents continue on v1
 
 import os
 import time
@@ -9,12 +8,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from api.database import check_db_connection
 from api.logger import logger
-from api.routers import health, ingest
+from api.routers import health, ingest, analytics, auth
 from api.routers.admin import (
     schools,
     regions,
@@ -33,7 +30,6 @@ API_VERSION = "1.0.0"
 
 @asynccontextmanager
 async def lifespan(app):
-    # Runs on startup -- checks database connection
     logger.info("Starting " + API_TITLE)
     if check_db_connection():
         logger.info("Database connection confirmed")
@@ -61,8 +57,6 @@ app.add_middleware(
 
 @app.middleware("http")
 async def request_id_middleware(request, call_next):
-    # Adds a unique request ID to every request and response
-    # Format: REQ-YYYYMMDD-SCHOOLID-SEQUENCE
     school_id = request.headers.get("X-School-ID", "UNKNOWN")
     sequence = str(uuid.uuid4().int)[:4]
     from datetime import datetime
@@ -82,6 +76,8 @@ async def request_id_middleware(request, call_next):
 # Register all routers
 app.include_router(health.router,               prefix="/api/v1")
 app.include_router(ingest.router,               prefix="/api/v1")
+app.include_router(analytics.router,            prefix="/api/v1")
+app.include_router(auth.router,                 prefix="/api/v1")
 app.include_router(schools.router,              prefix="/api/v1/admin")
 app.include_router(regions.router,              prefix="/api/v1/admin")
 app.include_router(providers.router,            prefix="/api/v1/admin")

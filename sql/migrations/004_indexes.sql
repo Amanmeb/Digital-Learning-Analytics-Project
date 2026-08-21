@@ -1,4 +1,4 @@
-﻿-- Migration 004
+-- Migration 004
 -- Performance indexes
 -- CDLAID Analytics Platform
 

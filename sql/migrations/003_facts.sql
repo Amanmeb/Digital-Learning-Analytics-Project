@@ -1,4 +1,4 @@
-﻿-- Migration 003
+-- Migration 003
 -- All 9 fact tables
 -- CDLAID Analytics Platform
 

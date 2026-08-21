@@ -1,4 +1,4 @@
-﻿-- Migration 002
+-- Migration 002
 -- All 16 dimension tables
 -- CDLAID Analytics Platform
 
